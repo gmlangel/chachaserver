@@ -17,25 +17,39 @@
       require('boot');
     </script> 
     <script type="text/javascript">
-      var pomelo = window.pomelo;
-      var host = "127.0.0.1";
-      var port = "3010";
+//      var pomelo = window.pomelo;
+//      var host = "127.0.0.1";
+//      var port = "3010";
+      var ws = null;
+
+
+
       function show() {
-        pomelo.init({
-          host: host,
-          port: port,
-          log: true
-        }, function() {
-
-          connectedServer();
-//        pomelo.request("connector.entryHandler.entry", "hello pomelo", function(data) {
-//            alert(data.msg);
-//          });
-        });
+//        pomelo.init({
+//          host: host,
+//          port: port,
+//          log: true
+//        }, function() {
+//          connectedServer();
+//        });
+        ws = new WebSocket("ws://127.0.0.1:49999");
+        ws.onopen = function(event){
+          //服务器连接成功
+          //connectedServer();
+        }
+        ws.onmessage = function(event){
+          console.log("收到服务器数据包" + event.data);
+        }
+        ws.onerror = function(event){
+          console.log("发生错误",event);
+        }
+        ws.onclose = function(event){
+          console.log("服务器断开")
+        }
       }
-
+      //---------------自定义部分-----------------------------------
       var seq = 0;//包序号
-      var isDoing = false;//是否正在进行没有服务器请求,避免重复请求
+      //var isDoing = false;//是否正在进行没有服务器请求,避免重复请求
       var isconnected = false;//是否连接成功
       var islogined = false;//是否登录成功
       var isjoinRoomed = false;//是否在教室中
@@ -50,12 +64,7 @@
         console.log("服务器连接成功");
         console.log("开始心跳");
         setInterval(function(){
-          sendPackageToServer("connector.heartbeatHandler.step",{"lt":parseInt(new Date().valueOf()/1000)},function(data){
-            if(data.seq > seq || data.seq == 0){
-              seq = data.seq;//将本地seq同步为server的Seq
-            }
-            //console.log("服务器返回时间:" + data.st);
-          })
+          sendPackageToServer(0x00FF0001,{"lt":parseInt(new Date().valueOf()/1000)})
         },5000);
 
       }
@@ -63,7 +72,7 @@
       /**
        * 发送数据包至服务器
        * */
-      function sendPackageToServer(route,argObj,callback){
+      function sendPackageToServer(cmd,argObj){
         //自增包序号
         if(seq < 0xfffffffe){
           seq++;
@@ -71,39 +80,43 @@
           seq = 0;
         }
         argObj.seq = seq;
-        pomelo.request(route,argObj,callback);
+        argObj.cmd = cmd;
+        ws.send(JSON.stringify(argObj));
       }
 
       function loginOrOut(){
-
-        if(islogined == false){
-          //执行登陆
-          sendPackageToServer("connector.loginHandler.login",{"ln":loginName},function(data){
-            console.log("登陆response",data);
-            if(data.code == 0){
-              let btn_login = document.getElementById("btn_login");
-              btn_login.value = "注销";
-              islogined = true;
-              userInfo = {
-                "uid":data.uid,
-                "nickname":data.nn,
-                "headerImg":data.hi,
-                "sex":data.sex
-              }
-            }
-            isDoing = false;
-          })
-        }else{
-          //执行登出
-          sendPackageToServer("connector.loginHandler.logout",{"uid":userInfo["uid"]},function(data){
-            console.log("登陆response",data);
-            if(data.code == 0){
-              let btn_login = document.getElementById("btn_login");
-              btn_login.value = "登录";
-              islogined = false;
-            }
-          })
-        }
+//        if(!isconnected){
+//          console.log("还未链接服务器");
+//          return;
+//        }
+//
+//        if(islogined == false){
+//          //执行登陆
+//          sendPackageToServer(0x00FF0003,{"ln":loginName},function(data){
+//            console.log("登陆response",data);
+//            if(data.code == 0){
+//              let btn_login = document.getElementById("btn_login");
+//              btn_login.value = "注销";
+//              islogined = true;
+//              userInfo = {
+//                "uid":data.uid,
+//                "nickname":data.nn,
+//                "headerImg":data.hi,
+//                "sex":data.sex
+//              }
+//            }
+//          })
+//        }else{
+//          //执行登出
+//          sendPackageToServer("connector.loginHandler.logout",{"uid":userInfo["uid"]},function(data){
+//            console.log("登陆response",data);
+//            if(data.code == 0){
+//              let btn_login = document.getElementById("btn_login");
+//              btn_login.value = "登录";
+//              islogined = false;
+//            }
+//          })
+//        }
 
       }
 

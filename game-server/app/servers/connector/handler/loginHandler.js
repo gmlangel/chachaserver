@@ -29,17 +29,21 @@ LoginHandler.prototype.login = function(msg, session, next) {
         if(userInfoMap.hasOwnProperty(loginName)){
             let uinfo = userInfoMap[loginName];
             if(this.app.get("loginedArray").indexOf(uinfo["uid"]) > -1){
-                resObj["code"] = 258;//已经登录
-                resObj["fe"] = "该用户已经登录过,请勿重复登录"
-            }else{
+                //对之前的用户发送掉线消息
+                this.app.pushUseroffLineMSG(uinfo["uid"],"账号在其它端登录,您已被踢");
+                this.app.removeUID(uinfo["uid"]);
+            }
                 resObj["code"] = 0;
                 resObj["fe"] = "";
                 resObj["nn"] = uinfo["nickName"];
                 resObj["hi"] = uinfo["headerImage"];
                 resObj["sex"] = uinfo["sex"];
                 resObj["uid"] = uinfo["uid"];
-                this.app.get("loginedArray").push(uinfo["uid"]);//将用户ID写入 已登陆数组
-            }
+                session.bind(uinfo["uid"])//绑定session
+                session.set("bbb",0);
+                session.push();//将数据推至前端
+                this.app.managerUserID(uinfo["uid"],session.id);
+
         }else{
             resObj["code"] = 257;//用户不存在
             resObj["fe"] = "用户不存在"
@@ -65,14 +69,7 @@ LoginHandler.prototype.logout = function(msg, session, next) {
             resObj["code"] = 0;
             resObj["fe"] = ""
             //将该用户从登录数组中移除
-            let arr = this.app.get("loginedArray");
-            let j = arr.length;
-            for(var idx = 0;idx < j;idx++){
-                if(arr[idx] == uid){
-                    arr.splice(idx,1);
-                    break;
-                }
-            }
+            this.app.removeUID(uid);
         }else{
             resObj["code"] = 259;
             resObj["fe"] = "用户未登陆过"

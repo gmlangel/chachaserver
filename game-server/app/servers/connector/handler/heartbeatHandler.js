@@ -20,5 +20,8 @@ var HeartbeatHandler = function(app) {
 HeartbeatHandler.prototype.step = function(msg, session, next) {
     //console.log("收到客户端心跳请求:"+msg.lt,"sessionId:"+session.get("gid"))
     session.set("gid",msg.seq);
+    session.push("gid",function(){
+
+    });
     next(null, {"seq":(msg.seq + 1),"c_seq":msg.seq,"st":parseInt(new Date().valueOf()/1000)});
 };

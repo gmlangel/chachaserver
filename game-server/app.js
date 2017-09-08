@@ -6,6 +6,8 @@ var pomelo = require('pomelo');
 var app = pomelo.createApp();
 app.set('name', 'chachaserver');
 
+
+
 // app configuration
 app.configure('production|development', 'connector', function(){
   app.set('connectorConfig',
@@ -91,3 +93,38 @@ var userInfoMap = {
 app.set("userInfoMap",userInfoMap);
 //设置记录logined用户的数组
 app.set("loginedArray",[]);
+
+//声明uid管理函数
+app.managerUserID = function(uid,sid){
+    //将userID加入全局管理频道
+    let channelServ = app.get('channelService');
+    let channelKey = "globelC_"+uid%10;
+    let channel = channelServ.getChannel(channelKey,true);
+    channel.add(uid,sid);
+    console.log("加入公屏",uid,sid);
+    //将userID加入到用户记录数组
+    app.get("loginedArray").push(uid);//将用户ID写入 已登陆数组
+}
+
+app.pushUseroffLineMSG = function(uid,reson){
+    let channelServ = app.get('channelService');
+    channelServ.pushMessageByUids("offlineNotify",reson,[uid]);
+}
+
+app.removeUID = function (uid){
+    //移除session绑定
+    let backSessionSer = app.get("backendSessionService");
+    backSessionSer.get(app.getServerId(),uid,function(error,backSession){
+        console.log("成功了")
+        backSession.unbind(uid);
+    })
+    //移除uid记录
+    let arr = app.get("loginedArray");
+    let j = arr.length;
+    for(var idx = 0;idx < j;idx++){
+        if(arr[idx] == uid){
+            arr.splice(idx,1);
+            break;
+        }
+    }
+}

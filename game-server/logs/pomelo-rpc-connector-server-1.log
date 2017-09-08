@@ -1,0 +1,18 @@
+[2017-09-06 20:21:29.272] [ERROR] pomelo-rpc - [31m[MailStation] [39m[pomelo-rpc] unknown server: 1
+[2017-09-06 20:21:29.272] [ERROR] pomelo-rpc - [31m[MailStation] [39m[pomelo-rpc] fail to find remote server:1
+[2017-09-06 20:21:29.273] [ERROR] pomelo-rpc - [31m[failprocess] [39mrpc failed with error, remote server: 1, msg: {"namespace":"sys","service":"sessionRemote","method":"unbind","args":[null,null]}, error code: 2
+[2017-09-06 20:26:34.520] [ERROR] pomelo-rpc - [31m[MailStation] [39m[pomelo-rpc] unknown server: 1
+[2017-09-06 20:26:34.521] [ERROR] pomelo-rpc - [31m[MailStation] [39m[pomelo-rpc] fail to find remote server:1
+[2017-09-06 20:26:34.523] [ERROR] pomelo-rpc - [31m[failprocess] [39mrpc failed with error, remote server: 1, msg: {"namespace":"sys","service":"sessionRemote","method":"unbind","args":[null,null]}, error code: 2
+[2017-09-06 20:26:39.596] [ERROR] pomelo-rpc - [31m[MailStation] [39m[pomelo-rpc] unknown server: 1
+[2017-09-06 20:26:39.596] [ERROR] pomelo-rpc - [31m[MailStation] [39m[pomelo-rpc] fail to find remote server:1
+[2017-09-06 20:26:39.597] [ERROR] pomelo-rpc - [31m[failprocess] [39mrpc failed with error, remote server: 1, msg: {"namespace":"sys","service":"sessionRemote","method":"unbind","args":[null,null]}, error code: 2
+[2017-09-06 20:26:47.638] [ERROR] pomelo-rpc - [31m[MailStation] [39m[pomelo-rpc] unknown server: 1
+[2017-09-06 20:26:47.638] [ERROR] pomelo-rpc - [31m[MailStation] [39m[pomelo-rpc] fail to find remote server:1
+[2017-09-06 20:26:47.638] [ERROR] pomelo-rpc - [31m[failprocess] [39mrpc failed with error, remote server: 1, msg: {"namespace":"sys","service":"sessionRemote","method":"unbind","args":[null,null]}, error code: 2
+[2017-09-06 20:32:23.786] [ERROR] pomelo-rpc - [31m[MailStation] [39m[pomelo-rpc] unknown server: 1
+[2017-09-06 20:32:23.786] [ERROR] pomelo-rpc - [31m[MailStation] [39m[pomelo-rpc] fail to find remote server:1
+[2017-09-06 20:32:23.786] [ERROR] pomelo-rpc - [31m[failprocess] [39mrpc failed with error, remote server: 1, msg: {"namespace":"sys","service":"sessionRemote","method":"unbind","args":[null,null]}, error code: 2
+[2017-09-06 20:33:21.864] [ERROR] pomelo-rpc - [31m[MailStation] [39m[pomelo-rpc] unknown server: 1
+[2017-09-06 20:33:21.864] [ERROR] pomelo-rpc - [31m[MailStation] [39m[pomelo-rpc] fail to find remote server:1
+[2017-09-06 20:33:21.865] [ERROR] pomelo-rpc - [31m[failprocess] [39mrpc failed with error, remote server: 1, msg: {"namespace":"sys","service":"sessionRemote","method":"unbind","args":[null,null]}, error code: 2
