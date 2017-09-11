@@ -27,7 +27,16 @@ class TestConnec{
 
 }
 
-var obj = new TestConnec();
+//var obj = new TestConnec();
 
-
+var b = 13;
+var o = {};
+o[b] = 13;
+for(var key in o){
+    console.log(key);
+    if(key == b)
+    {
+        console.log("ok");
+    }
+}
 

@@ -217,7 +217,32 @@ function destroySocket(soc){
     }catch(err){
         console.log("socket:"+soc.sid + "停止失败");
     }
-
+    var rid = soc.rid || -1;
+    var roomInfo = roomMap[rid];
+    if(roomInfo){
+        //改socket绑定着room信息, 需要给room中的其它用户发送用户变更推送通知
+        var userArr = roomInfo.userArr;
+        var j = userArr.length;
+        var wantRemoveObj = null;
+        var wangtI = -1;
+        var userIDArr = [];
+        for(var i = 0 ;i<j; i++){
+            if(userArr[i].uid == uid){
+                wantRemoveObj = userArr[i];
+                wangtI = i;
+            }else{
+                //填充被推送用户的ID数组
+                userIDArr.push(uid);
+            }
+        }
+        if(wantRemoveObj){
+            wantRemoveObj.type = 0;
+            //从用户信息数组中移除
+            userArr.splice(wangtI,1);
+            //向其他用户发送用户变更通知
+            userStatusChangeNotify(userIDArr,[wantRemoveObj]);
+        }
+    }
 
 }
 
@@ -372,7 +397,7 @@ execFuncMap[0x00FF0005] = function(sid,dataObj){
             ownedConnectUIDMap[uidKey] = null;
             delete ownedConnectUIDMap[uidKey];
         }
-        sock.send(JSON({"cmd":0x00FF0006,"seq":seq + 1,"c_seq":seq}));
+        sock.send(JSON.stringify({"cmd":0x00FF0006,"seq":seq + 1,"c_seq":seq}));
     }
 }
 
@@ -408,7 +433,7 @@ execFuncMap[0x00FF0008] = function(sid,dataObj){
             resObj.c_seq = seq;
             resObj.fe = "用户不存在";
         }
-        sock.send(JSON(resObj));
+        sock.send(JSON.stringify(resObj));
     }
 }
 
@@ -422,7 +447,7 @@ execFuncMap[0x00FF000A] = function(sid,dataObj){
         return
     }
     if(uid < 0){
-        sock.send(JSON({"cmd":0x00FF000B,"seq":seq + 1,"c_seq":seq,"code":257,"fe":"用户信息不存在,无法更新"}));
+        sock.send(JSON.stringify({"cmd":0x00FF000B,"seq":seq + 1,"c_seq":seq,"code":257,"fe":"用户信息不存在,无法更新"}));
         return;
     }
     var ln = userIDForNickNameMap[uid] || "";
@@ -451,7 +476,7 @@ execFuncMap[0x00FF000A] = function(sid,dataObj){
         resObj.c_seq = seq;
         resObj.fe = "用户信息不存在,无法更新数据";
     }
-    sock.send(JSON(resObj));
+    sock.send(JSON.stringify(resObj));
 
 }
 
@@ -465,7 +490,7 @@ execFuncMap[0x00FF000C] = function(sid,dataObj){
         return
     }
     if(uid < 0){
-        sock.send(JSON({"cmd":0x00FF000D,"seq":seq + 1,"c_seq":seq,"code":257,"fe":"用户信息不存在,无法创建room"}));
+        sock.send(JSON.stringify({"cmd":0x00FF000D,"seq":seq + 1,"c_seq":seq,"code":257,"fe":"用户信息不存在,无法创建room"}));
         return;
     }
     //创建频道
@@ -479,7 +504,10 @@ execFuncMap[0x00FF000C] = function(sid,dataObj){
         createTime:timeIntaval,/*创建时间*/
         token:createToken(uid),/*频道邀请码*/
         owneerUID:uid,/*创建频道的人的ID*/
-        userArr:[]/*当前频道中的人的信息数组*/
+        userArr:[],/*当前频道中的人的信息数组*/
+        messageArr:[],/*文本消息记录最后10条*/
+        adminCMDArr:[],/*管理员命令集合*/
+        tongyongCMDArr:[]/*通用教学命令集合*/
     }
 
     roomMap[rid] = roomInfo;
@@ -492,7 +520,7 @@ execFuncMap[0x00FF000C] = function(sid,dataObj){
     resObj.fe = "";
     resObj.rid = rid;
     resObj.rc = roomInfo.token;
-    sock.send(JSON(resObj));
+    sock.send(JSON.stringify(resObj));
 
 }
 
@@ -505,36 +533,419 @@ execFuncMap[0x00FF000E] = function(sid,dataObj){
     if(!sock){
         return
     }
-    if(uid < 0){
-        sock.send(JSON({"cmd":0x00FF000D,"seq":seq + 1,"c_seq":seq,"code":257,"fe":"用户信息不存在,无法创建room"}));
-        return;
-    }
-    //创建频道
-    roomIdOffset ++;
-    var rid = roomIdOffset;
-    var timeIntaval = new Date().valueOf();
-    var roomInfo = {
-        roomid:rid,/*id*/
-        roomName:dataObj["rn"] || "",/*room名称*/
-        roomImage:dataObj["ri"] || "",/*room图标*/
-        createTime:timeIntaval,/*创建时间*/
-        token:createToken(uid),/*频道邀请码*/
-        owneerUID:uid,/*创建频道的人的ID*/
-        userArr:[]/*当前频道中的人的信息数组*/
-    }
-
-    roomMap[rid] = roomInfo;
-    //向客户端返回结果
+    //if(uid < 0){
+    //    sock.send(JSON.stringify({"cmd":0x00FF000D,"seq":seq + 1,"c_seq":seq,"code":257,"fe":"用户信息不存在,无法创建room"}));
+    //    return;
+    //}
+    //遍历roomMap,封装返回数据
     var resObj = {}
     resObj.code = 0;
-    resObj.cmd = 0x00FF000D;
+    resObj.cmd = 0x00FF000F;
     resObj.seq = seq + 1;
     resObj.c_seq = seq;
-    resObj.fe = "";
-    resObj.rid = rid;
-    resObj.rc = roomInfo.token;
-    sock.send(JSON(resObj));
+    resObj.ra = [];
+    for(var key in roomMap){
+        var rinfo = roomMap[key];
+        if(rinfo.owneerUID == uid){
+            resObj.ra.push({rid:rinfo.roomid,rc:rinfo.token,rn:rinfo.roomName,ri:rinfo.roomImage});
+        }
+    }
+    //向客户端返回结果
+    sock.send(JSON.stringify(resObj));
+}
 
+//删除room
+execFuncMap[0x00FF0011] = function(sid,dataObj){
+    var seq = dataObj["seq"] || 0;
+    var rid = dataObj.rid || -1;
+    rid = parseInt(rid);
+    var sock = getSocketByUIDAndSID(sid,-1);
+    if(!sock){
+        return
+    }
+    if(rid < 0){
+        sock.send(JSON.stringify({"cmd":0x00FF0012,"seq":seq + 1,"c_seq":seq,"code":260,"fe":"删除room失败,room不存在"}));
+        return;
+    }
+    //遍历roomMap,封装返回数据
+    var resObj = {}
+    resObj.code = 260;
+    resObj.cmd = 0x00FF0012;
+    resObj.seq = seq + 1;
+    resObj.c_seq = seq;
+    for(var key in roomMap){
+        if(key == rid){
+            resObj.code = 0;
+            //删除频道
+            roomMap[key] = null;
+            delete roomMap[key];
+            break;
+        }
+    }
+    if(resObj.code == 260){
+        resObj.fe = "删除room失败,room不存在";
+    }
+    //向客户端返回结果
+    sock.send(JSON.stringify(resObj));
+}
+
+/**
+ * room状态通知
+ * @param uidArr Array UID数组
+ * @param messageJson Object 要推送的消息数据JSON形式
+ * */
+function roomStatusNotify(uidArr,messageJson){
+    var j = uidArr.length;
+    var dataObj = {};
+    dataObj.code = 0;
+    dataObj.cmd = 0x00FF0013;
+    dataObj.seq = 0;
+    dataObj.msg = messageJson;
+    var dataStr = JSON.stringify(dataObj);
+    for(var i = 0 ;i < j;i++){
+        var uid = uidArr[i];
+        var sock = getSocketByUIDAndSID(-1,uid);
+        if(sock){
+            sock.send(dataStr);
+        }
+    }
+}
+
+//进入教室
+execFuncMap[0x00FF0014] = function(sid,dataObj){
+    var uid = dataObj.uid || -1;
+    uid = parseInt(uid);
+    var sock = getSocketByUIDAndSID(sid,uid)
+    if(sock){
+        var user = {};
+        user.uid = uid;
+        user.nickName = data.nn || "";
+        user.headerImage = data.hi || "";
+        user.sex = data.sex || 1;
+        user.ca = data.ca;//用户自定义属性 object类型
+
+        var seq = dataObj["seq"] || 0;
+        var rid = dataObj.rid || -1;
+        var roominfo = roomMap[rid];
+        var resobj = {};
+        resobj.cmd = 0x00FF0015;
+        resobj.seq = seq + 1;
+        resobj.c_seq = seq;
+        if(roominfo){
+            var allowJoin = roominfo.token == dataObj.rc;//是否允许进入教室
+            if(!allowJoin){
+                resobj.code = 262;
+                resobj.fe = "进入room失败,邀请码无效"
+                //向请求端发送回执消息
+                sock.send(JSON.stringify(resobj));
+                return;
+            }
+            var j = roominfo.userArr.length;
+            var uidArr = [];
+            for(var i = 0 ;i < j;i++){
+                if(roominfo.userArr[i].uid == user.uid){
+                    //教室内存在重复的用户,则不允许再次进入教室
+                    allowJoin = false;
+                    break;
+                }else{
+                    //将用户ID记录到集合,用于发送 用户状态变更通知
+                    uidArr.push(roominfo.userArr[i].uid);
+                }
+            }
+            if(allowJoin){
+                //将rid绑定到socket链接上
+                sock.rid = rid;
+                //加入到教室的用户列表
+                roominfo.userArr.push(user);
+                //向请求端发送回执消息
+                resobj.code = 0;
+                resobj.fe = ""
+                resobj.rid = roominfo.roomid;
+                resobj.rn = roominfo.roomName;
+                resobj.ri = roominfo.roomImage;
+                resobj.ua = roominfo.userArr;
+                sock.send(JSON.stringify(resobj));
+                //向教室内的其它用户发送 用户状态变更通知
+                var notifyUser = {};
+                notifyUser.uid = user.uid;
+                notifyUser.nickName = user.nickName;
+                notifyUser.headerImage = user.headerImage;
+                notifyUser.sex = user.sex;
+                notifyUser.ca = user.ca;//用户自定义属性 object类型
+                notifyUser.type = 1;//是进入教室 还是退出教室
+                userStatusChangeNotify(uidArr,[notifyUser]);
+                //向该用户推送教室内缓存的文本消息通知
+                if(roominfo.messageArr.length > 0){
+                    chatMSGNotify([user.uid],rid,roominfo.messageArr);
+                }
+                //向该用户推送管理员操作命令通知
+                if(roominfo.adminCMDArr.length > 0)
+                {
+                    adminCMDNotify([user.uid],rid,roominfo.adminCMDArr);
+                }
+                //向该用户推送教学命令通知
+                if(roominfo.tongyongCMDArr.length > 0){
+                    tongyongCMDNotify([user.uid],rid,roominfo.tongyongCMDArr);
+                }
+            }else{
+                resobj.code = 261;
+                resobj.fe = "进入room失败,该用户已经再room中"
+                //向请求端发送回执消息
+                sock.send(JSON.stringify(resobj));
+            }
+        }else{
+            resobj.code = 260;
+            resobj.fe = "进入room失败,room不存在"
+            //向请求端发送回执消息
+            sock.send(JSON.stringify(resobj));
+        }
+
+    }
+}
+
+/**
+ * 用户状态变更通知
+ * @param uidArr Array 被推送的用户ID数组
+ * @param changedUserInfoArr Array 被推送的数据
+ * */
+function userStatusChangeNotify(uidArr,changedUserInfoArr){
+    var j = uidArr.length;
+    var resObj = {};
+    resObj.cmd = 0x00FF0017;
+    resObj.code = 0;
+    resObj.fe = "";
+    resObj.seq = 0;
+    resObj.c_seq = 0;
+    resObj.ua = changedUserInfoArr;
+    var resString = JSON.stringify(resObj);
+    for(var i = 0 ;i<j;i++){
+        var uid = uidArr[i];
+        var sock = getSocketByUIDAndSID(-1,uid);
+        if(sock){
+            sock.send(resString);
+        }
+    }
+}
+
+//退出教室
+execFuncMap[0x00FF0014] = function(sid,dataObj){
+    var uid = dataObj.uid || -1;
+    uid = parseInt(uid);
+    var rid = dataObj.rid || -1;
+    var roominfo = roomMap[rid];
+    if(roominfo){
+        //从room信息中移除用户信息
+        var userArr = roominfo.userArr;
+        var j = userArr.length;
+        var wantRemoveObj = null;
+        var wangtI = -1;
+        var userIDArr = [];
+        for(var i = 0 ;i<j; i++){
+            if(userArr[i].uid == uid){
+                wantRemoveObj = userArr[i];
+                wangtI = i;
+            }else{
+                //填充被推送用户的ID数组
+                userIDArr.push(uid);
+            }
+        }
+        if(wantRemoveObj){
+            wantRemoveObj.type = 0;
+            //从用户信息数组中移除
+            userArr.splice(wangtI,1);
+            //向其他用户发送用户变更通知
+            userStatusChangeNotify(userIDArr,[wantRemoveObj]);
+            if(userArr.length){
+                //教室里已经没有人了,清空缓存的所有数据
+                roominfo.messageArr.splice(0);
+                roominfo.adminCMDArr.splice(0);
+                roominfo.tongyongCMDArr.splice(0);
+            }
+        }
+    }
+    var sock = getSocketByUIDAndSID(sid,uid)
+    if(sock){
+        //移除roomID与socket链接的绑定
+        sock.rid = -1;
+    }
+}
+
+//发送文本消息
+execFuncMap[0x00FF0018] = function(sid,dataObj){
+    var uid = dataObj.uid || -1;
+    uid = parseInt(uid);
+    var rid = dataObj.rid || -1;
+    var roominfo = roomMap[rid];
+    if(roominfo){
+        //从room信息中移除用户信息
+        var userArr = roominfo.userArr;
+        var j = userArr.length;
+        var userIDArr = [];
+        for(var i = 0 ;i<j; i++){
+            //填充被推送用户的ID数组
+            if(userArr[i].uid != uid)
+            {
+                userIDArr.push(uid);
+            }
+        }
+        //封装通知的信息数据体
+        var serverTime = new Date().valueOf();
+        var msg = {suid:uid,st:serverTime,lt:dataObj.lt,msg:dataObj.msg};
+        //将文本消息记录在文本消息集合中
+        roominfo.messageArr.push(msg);
+        if(roominfo.messageArr.length > 10){
+            roominfo.messageArr.splice(0,roominfo.messageArr.length - 10);
+        }
+        //发送文本消息通知
+        chatMSGNotify(userIDArr,rid,[msg]);
+    }
+}
+
+/**
+ * 发送文本消息推送通知
+ * */
+function chatMSGNotify(uidArr,rid,msgArr){
+    var notifyObj = {};
+    notifyObj.cmd = 0x00FF0019;
+    notifyObj.seq = 0;
+    notifyObj.code = 0;
+    notifyObj.rid = rid;
+    notifyObj.msga = msgArr;
+    var notifyStr = JSON.stringify(notifyObj);
+    var j = uidArr.length;
+    for(var i=0;i<j;i++){
+        var uid = uidArr[i];
+        var sock = getSocketByUIDAndSID(-1,uid);
+        if(sock){
+            sock.send(notifyStr);
+        }
+    }
+}
+
+//发送管理员命令
+execFuncMap[0x00FF001A] = function(sid,dataObj){
+    var uid = dataObj.uid || -1;
+    uid = parseInt(uid);
+    var rid = dataObj.rid || -1;
+    var roominfo = roomMap[rid];
+    if(roominfo){
+        //从room信息中移除用户信息
+        var userArr = roominfo.userArr;
+        var j = userArr.length;
+        var userIDArr = [];
+        for(var i = 0 ;i<j; i++){
+            //填充被推送用户的ID数组
+            if(userArr[i].uid != uid)
+            {
+                userIDArr.push(uid);
+            }
+        }
+        //封装通知的信息数据体
+        var serverTime = new Date().valueOf();
+        var cm = {suid:uid,st:serverTime,lt:dataObj.lt,cmd:dataObj.cmd};
+        //将文本消息记录在文本消息集合中
+        roominfo.adminCMDArr.push(cm);
+        //发送管理员命令通知
+        adminCMDNotify(userIDArr,rid,[cm]);
+    }
+}
+
+/**
+ * 发送管理员命令通知
+ * */
+function adminCMDNotify(uidArr,rid,adminCMDArr){
+    var notifyObj = {};
+    notifyObj.cmd = 0x00FF001B;
+    notifyObj.seq = 0;
+    notifyObj.code = 0;
+    notifyObj.rid = rid;
+    notifyObj.cmda = adminCMDArr;
+    var notifyStr = JSON.stringify(notifyObj);
+    var j = uidArr.length;
+    for(var i=0;i<j;i++){
+        var uid = uidArr[i];
+        var sock = getSocketByUIDAndSID(-1,uid);
+        if(sock){
+            sock.send(notifyStr);
+        }
+    }
+}
+
+//发送通用教学命令
+execFuncMap[0x00FF001C] = function(sid,dataObj){
+    var uid = dataObj.uid || -1;
+    uid = parseInt(uid);
+    var rid = dataObj.rid || -1;
+    var roominfo = roomMap[rid];
+    if(roominfo){
+        //从room信息中移除用户信息
+        var userArr = roominfo.userArr;
+        var j = userArr.length;
+        var userIDArr = [];
+        for(var i = 0 ;i<j; i++){
+            //填充被推送用户的ID数组
+            if(userArr[i].uid != uid)
+            {
+                userIDArr.push(uid);
+            }
+        }
+        //封装通知的信息数据体
+        var serverTime = new Date().valueOf();
+        var data = {suid:uid,st:serverTime,lt:dataObj.lt,data:dataObj.data};
+        //将文本消息记录在文本消息集合中
+        roominfo.tongyongCMDArr.push(data);
+        //发送管理员命令通知
+        tongyongCMDNotify(userIDArr,rid,[data]);
+    }
+}
+
+/**
+ * 发送通用教学命令通知
+ * */
+function tongyongCMDNotify(uidArr,rid,tongyongCMDArr){
+    var notifyObj = {};
+    notifyObj.cmd = 0x00FF001D;
+    notifyObj.seq = 0;
+    notifyObj.code = 0;
+    notifyObj.rid = rid;
+    notifyObj.datas = tongyongCMDArr;
+    var notifyStr = JSON.stringify(notifyObj);
+    var j = uidArr.length;
+    for(var i=0;i<j;i++){
+        var uid = uidArr[i];
+        var sock = getSocketByUIDAndSID(-1,uid);
+        if(sock){
+            sock.send(notifyStr);
+        }
+    }
+}
+
+//更新用户状态
+execFuncMap[0x00FF001E] = function(sid,dataObj){
+    var uid = dataObj.uid || -1;
+    uid = parseInt(uid);
+    var rid = dataObj.rid || -1;
+    var roominfo = roomMap[rid];
+    if (roominfo) {
+        var wantObj = null;
+        var userArr = roominfo.userArr;
+        var j = userArr.length;
+        var uidArr = [];
+        for (var i = 0; i < j; i++) {
+            if (userArr[i].uid == uid) {
+                //更新用户状态
+                wantObj = userArr[i];
+                wantObj.ca = dataObj.ca;
+            }else{
+                //记录要推送的用户ID
+                uidArr.push(userArr[i].uid)
+            }
+        }
+        if(wantObj != null){
+            //发送用户状态信息变更通知
+            userStatusChangeNotify(uidArr,[wantObj]);
+        }
+    }
 }
 
 //主入口逻辑部分--------------------------------
