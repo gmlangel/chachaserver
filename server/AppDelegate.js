@@ -2,8 +2,8 @@
  * Created by guominglong on 2017/9/7.
  */
 //class导入----------------------------------------------------------------------------------------------------------
-var GMLServerClass = require("./GMLServer.js");
 var netClass = require("net");
+var crypto = require('crypto');
 
 //对象以及属性声明----------------------------------------------------------------------------------------------------------
 var mainServer = null;//主服务器
@@ -33,7 +33,7 @@ var roleMap = {
     "stuRole":stuRole,
     "adminRole":adminRole
 }
-//设置用户信息表
+//设置用户信息表{loginName:UserInfoObj}
 var userInfoMap = {
     "chacha":{
         "nickName":"chacha",
@@ -78,6 +78,13 @@ var userInfoMap = {
         "loginName":"stu5"
     }
 }
+
+//用户昵称,用户ID对照表{uid:loginName}
+var userIDForNickNameMap = {1:"chacha",2:"stu1",3:"stu2",4:"stu3",5:"stu4",6:"stu5"};
+
+//教室Map,{rid:roomInfoObj}
+var roomIdOffset = 0;
+var roomMap = {};
 //函数声明---------------------------------------------------------------------------------------------------------------
 //主函数
 function start(){
@@ -214,6 +221,38 @@ function destroySocket(soc){
 
 }
 
+/**
+ * 通过UID和SID检索出一个可用的socket链接
+ * @param sid int socketID
+ * @param uid int userID
+ * return socket  有可能为null
+ * */
+function getSocketByUIDAndSID(sid,uid){
+    var sock = null;
+    var sidKey = sid.toString();
+    var uidKey = uid.toString();
+    if(unOwnedConnect.hasOwnProperty(sidKey)){
+        sock = unOwnedConnect[sidKey];
+    }else if(ownedConnect.hasOwnProperty(sidKey)){
+        sock = ownedConnect[sidKey];
+    }else if(ownedConnectUIDMap.hasOwnProperty(uidKey)){
+        sock = ownedConnectUIDMap[uidKey];
+    }
+    return sock;
+}
+
+/**
+ * 生成room邀请码
+ * @param uid int userID
+ * return string token字符串
+ * */
+function createToken(uid){
+    var date = new Date().valueOf();
+    var tokenStr = date + "_" + uid;
+    var md5 = crypto.createHash('md5');
+    return md5.update(password).digest('hex');
+}
+
 //心跳服务
 execFuncMap[0x00FF0001] = function(sid,dataObj){
     var seq = dataObj["seq"] || 0;
@@ -231,15 +270,17 @@ execFuncMap[0x00FF0001] = function(sid,dataObj){
     }
 }
 
-//登陆服务
+//登录服务
 execFuncMap[0x00FF0003] = function(sid,dataObj){
     var loginName = dataObj.ln || "";
+    var seq = dataObj["seq"] || 0;
     loginName = loginName.toLocaleLowerCase();//转小写,避免大小写账号重复问题
-    var resObj = {"seq":(msg.seq + 1),"c_seq":msg.seq};
+    var resObj = {"seq":(seq + 1),"c_seq":seq};
     var uid = -1;
     if(loginName == ""){
         resObj["code"] = 256;//登陆名不能为空
         resObj["fe"] = "登录名不能为空"
+        resObj["cmd"] = 0x00FF0004;
         //向客户端发送数据
         var sock = getSocketByUIDAndSID(sid,uid);
 
@@ -279,6 +320,7 @@ execFuncMap[0x00FF0003] = function(sid,dataObj){
                         //添加到登陆MAP
                         ownedConnectUIDMap[uidKey] = ownedConnect[sidKey];
                     }
+                    obj["cmd"] = 0x00FF0004;
                     //向客户端发送数据
                     var sock = getSocketByUIDAndSID(s_id,u_id);
 
@@ -287,13 +329,14 @@ execFuncMap[0x00FF0003] = function(sid,dataObj){
                         sock.write(JSON.stringify(obj));
                     }
                 }
-                //结束socket
-                preSock.end("账号在其它端登录,您已被踢");
+                //结束socket,并发送掉线通知
+                preSock.end(JSON.stringify({"cmd":0x00FF0007,"seq":(seq + 1),"code":259,"reason":"其它端登陆,您已经被踢"}));
             }
 
         }else{
             resObj["code"] = 257;//用户不存在
             resObj["fe"] = "用户不存在"
+            resObj["cmd"] = 0x00FF0004;
             //向客户端发送数据
             var sock = getSocketByUIDAndSID(sid,uid);
 
@@ -306,25 +349,194 @@ execFuncMap[0x00FF0003] = function(sid,dataObj){
 
 }
 
-/**
- * 通过UID和SID检索出一个可用的socket链接
- * @param sid int socketID
- * @param uid int userID
- * return socket  有可能为null
- * */
-function getSocketByUIDAndSID(sid,uid){
-    var sock = null;
-    var sidKey = sid.toString();
-    var uidKey = uid.toString();
-    if(unOwnedConnect.hasOwnProperty(sidKey)){
-        sock = unOwnedConnect[sidKey];
-    }else if(ownedConnect.hasOwnProperty(sidKey)){
-        sock = ownedConnect[sidKey];
-    }else if(ownedConnectUIDMap.hasOwnProperty(uidKey)){
-        sock = ownedConnectUIDMap[uidKey];
+//登出服务
+execFuncMap[0x00FF0005] = function(sid,dataObj){
+    var uid = dataObj.uid || -1;
+    uid = parseInt(uid);
+    var sock = getSocketByUIDAndSID(sid,uid);
+    if(sock){
+        var sidKey = sid.toString();
+        var uidKey = uid.toString();
+        var seq = dataObj["seq"] || 0;
+        //退出频道
+
+        //退出登陆
+        if(ownedConnect.hasOwnProperty(sidKey))
+        {
+            //添加到未绑定UID的Map
+            unOwnedConnect[sidKey] = ownedConnect[sidKey];
+            //移除
+            ownedConnect[sidKey] = null;
+            delete ownedConnect[sidKey];
+            //从登录MAP中移除
+            ownedConnectUIDMap[uidKey] = null;
+            delete ownedConnectUIDMap[uidKey];
+        }
+        sock.send(JSON({"cmd":0x00FF0006,"seq":seq + 1,"c_seq":seq}));
     }
-    return sock;
 }
+
+//获取用户信息服务
+execFuncMap[0x00FF0008] = function(sid,dataObj){
+    var uid = dataObj.uid || -1;
+    uid = parseInt(uid);
+    var seq = dataObj["seq"] || 0;
+    var sock = getSocketByUIDAndSID(sid,uid);
+    if(sock){
+        var ln = userIDForNickNameMap[uid] || "";
+        var resObj = null;
+        if(userInfoMap.hasOwnProperty(ln))
+        {
+            //检索到了用户信息
+            var tempUser = userInfoMap[ln]
+            resObj = {};
+            resObj.uid = tempUser.uid;
+            resObj.nn = tempUser.nickName;
+            resObj.hi = tempUser.headerImage;
+            resObj.sex = tempUser.sex;
+            resObj.code = 0;
+            resObj.cmd = 0x00FF0009;
+            resObj.seq = seq + 1;
+            resObj.c_seq = seq;
+            resObj.fe = "";
+        }else{
+            //未检索到用户信息
+            resObj = {};
+            resObj.code = 257;
+            resObj.cmd = 0x00FF0009;
+            resObj.seq = seq + 1;
+            resObj.c_seq = seq;
+            resObj.fe = "用户不存在";
+        }
+        sock.send(JSON(resObj));
+    }
+}
+
+//更新用户信息服务
+execFuncMap[0x00FF000A] = function(sid,dataObj){
+    var seq = dataObj["seq"] || 0;
+    var uid = dataObj.uid || -1;
+    uid = parseInt(uid);
+    var sock = getSocketByUIDAndSID(sid,uid);
+    if(!sock){
+        return
+    }
+    if(uid < 0){
+        sock.send(JSON({"cmd":0x00FF000B,"seq":seq + 1,"c_seq":seq,"code":257,"fe":"用户信息不存在,无法更新"}));
+        return;
+    }
+    var ln = userIDForNickNameMap[uid] || "";
+    var resObj = null;
+    if(userInfoMap.hasOwnProperty(ln))
+    {
+        //检索到了用户信息
+        //更新数据
+        var user = userInfoMap[ln];
+        user.sex = dataObj.sex || 1;
+        user.nickName = dataObj.nn || "";
+        user.headerImage = dataObj.hi || "";
+        //封装返回数据
+        resObj = {}
+        resObj.code = 0;
+        resObj.cmd = 0x00FF000B;
+        resObj.seq = seq + 1;
+        resObj.c_seq = seq;
+        resObj.fe = "";
+    }else{
+        //未检索到用户信息
+        resObj = {}
+        resObj.code = 257;
+        resObj.cmd = 0x00FF000B;
+        resObj.seq = seq + 1;
+        resObj.c_seq = seq;
+        resObj.fe = "用户信息不存在,无法更新数据";
+    }
+    sock.send(JSON(resObj));
+
+}
+
+//创建教室服务
+execFuncMap[0x00FF000C] = function(sid,dataObj){
+    var seq = dataObj["seq"] || 0;
+    var uid = dataObj.uid || -1;
+    uid = parseInt(uid);
+    var sock = getSocketByUIDAndSID(sid,uid);
+    if(!sock){
+        return
+    }
+    if(uid < 0){
+        sock.send(JSON({"cmd":0x00FF000D,"seq":seq + 1,"c_seq":seq,"code":257,"fe":"用户信息不存在,无法创建room"}));
+        return;
+    }
+    //创建频道
+    roomIdOffset ++;
+    var rid = roomIdOffset;
+    var timeIntaval = new Date().valueOf();
+    var roomInfo = {
+        roomid:rid,/*id*/
+        roomName:dataObj["rn"] || "",/*room名称*/
+        roomImage:dataObj["ri"] || "",/*room图标*/
+        createTime:timeIntaval,/*创建时间*/
+        token:createToken(uid),/*频道邀请码*/
+        owneerUID:uid,/*创建频道的人的ID*/
+        userArr:[]/*当前频道中的人的信息数组*/
+    }
+
+    roomMap[rid] = roomInfo;
+    //向客户端返回结果
+    var resObj = {}
+    resObj.code = 0;
+    resObj.cmd = 0x00FF000D;
+    resObj.seq = seq + 1;
+    resObj.c_seq = seq;
+    resObj.fe = "";
+    resObj.rid = rid;
+    resObj.rc = roomInfo.token;
+    sock.send(JSON(resObj));
+
+}
+
+//查询一个用户名下的所有创建的频道信息
+execFuncMap[0x00FF000E] = function(sid,dataObj){
+    var seq = dataObj["seq"] || 0;
+    var uid = dataObj.uid || -1;
+    uid = parseInt(uid);
+    var sock = getSocketByUIDAndSID(sid,uid);
+    if(!sock){
+        return
+    }
+    if(uid < 0){
+        sock.send(JSON({"cmd":0x00FF000D,"seq":seq + 1,"c_seq":seq,"code":257,"fe":"用户信息不存在,无法创建room"}));
+        return;
+    }
+    //创建频道
+    roomIdOffset ++;
+    var rid = roomIdOffset;
+    var timeIntaval = new Date().valueOf();
+    var roomInfo = {
+        roomid:rid,/*id*/
+        roomName:dataObj["rn"] || "",/*room名称*/
+        roomImage:dataObj["ri"] || "",/*room图标*/
+        createTime:timeIntaval,/*创建时间*/
+        token:createToken(uid),/*频道邀请码*/
+        owneerUID:uid,/*创建频道的人的ID*/
+        userArr:[]/*当前频道中的人的信息数组*/
+    }
+
+    roomMap[rid] = roomInfo;
+    //向客户端返回结果
+    var resObj = {}
+    resObj.code = 0;
+    resObj.cmd = 0x00FF000D;
+    resObj.seq = seq + 1;
+    resObj.c_seq = seq;
+    resObj.fe = "";
+    resObj.rid = rid;
+    resObj.rc = roomInfo.token;
+    sock.send(JSON(resObj));
+
+}
+
 //主入口逻辑部分--------------------------------
 if(require.main === module){
     start();
