@@ -3,7 +3,6 @@
   <component name="ChangeListManager">
     <list default="true" id="56c07df5-0754-42fb-8e56-93b50b45f6ed" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/server/AppDelegate.js" afterPath="$PROJECT_DIR$/server/AppDelegate.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/server/testConnec.js" afterPath="$PROJECT_DIR$/server/testConnec.js" />
     </list>
     <ignored path="chachaserver.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -93,8 +92,8 @@
       <file leaf-file-name="AppDelegate.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/server/AppDelegate.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.5207668">
-              <caret line="873" column="10" selection-start-line="873" selection-start-column="10" selection-end-line="873" selection-end-column="10" />
+            <state vertical-scroll-proportion="0.26043406">
+              <caret line="89" column="16" selection-start-line="89" selection-start-column="16" selection-end-line="89" selection-end-column="16" />
               <folding>
                 <element signature="e#968#1780#0" expanded="false" />
                 <element signature="n#!!block;n#start#0" expanded="false" />
@@ -106,7 +105,6 @@
                 <element signature="n#!!block;n#destroySocket#0" expanded="false" />
                 <element signature="n#!!block;n#getSocketByUIDAndSID#0" expanded="false" />
                 <element signature="n#!!block;n#createToken#0" expanded="false" />
-                <element signature="e#7731#8191#0" expanded="false" />
                 <element signature="e#8247#10975#0" expanded="false" />
                 <element signature="e#11031#11755#0" expanded="false" />
                 <element signature="e#11815#12808#0" expanded="false" />
@@ -475,7 +473,6 @@
             <element signature="n#!!block;n#destroySocket#0" expanded="false" />
             <element signature="n#!!block;n#getSocketByUIDAndSID#0" expanded="false" />
             <element signature="n#!!block;n#createToken#0" expanded="false" />
-            <element signature="e#7731#8191#0" expanded="false" />
             <element signature="e#8247#10975#0" expanded="false" />
             <element signature="e#11031#11755#0" expanded="false" />
             <element signature="e#11815#12808#0" expanded="false" />
@@ -549,7 +546,6 @@
             <element signature="n#!!block;n#destroySocket#0" expanded="false" />
             <element signature="n#!!block;n#getSocketByUIDAndSID#0" expanded="false" />
             <element signature="n#!!block;n#createToken#0" expanded="false" />
-            <element signature="e#7731#8191#0" expanded="false" />
             <element signature="e#8247#10975#0" expanded="false" />
             <element signature="e#11031#11755#0" expanded="false" />
             <element signature="e#11815#12808#0" expanded="false" />
@@ -845,8 +841,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/server/AppDelegate.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.5207668">
-          <caret line="873" column="10" selection-start-line="873" selection-start-column="10" selection-end-line="873" selection-end-column="10" />
+        <state vertical-scroll-proportion="0.26043406">
+          <caret line="89" column="16" selection-start-line="89" selection-start-column="16" selection-end-line="89" selection-end-column="16" />
           <folding>
             <element signature="e#968#1780#0" expanded="false" />
             <element signature="n#!!block;n#start#0" expanded="false" />
@@ -858,7 +854,6 @@
             <element signature="n#!!block;n#destroySocket#0" expanded="false" />
             <element signature="n#!!block;n#getSocketByUIDAndSID#0" expanded="false" />
             <element signature="n#!!block;n#createToken#0" expanded="false" />
-            <element signature="e#7731#8191#0" expanded="false" />
             <element signature="e#8247#10975#0" expanded="false" />
             <element signature="e#11031#11755#0" expanded="false" />
             <element signature="e#11815#12808#0" expanded="false" />

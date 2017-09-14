@@ -93,7 +93,7 @@ function start(){
         newConnectIns.sid = createConnectId();//为socket链接设置ID;
         console.log("新链接接入,socAddress:"+newConnectIns.remoteAddress + " socPort:" + newConnectIns.remotePort," sid:" + newConnectIns.sid)
         newConnectIns.uid = -1;//为其设置一个默认的uid
-        newConnectIns.setTimeout(10000);//设置socket超时时间为60秒
+        newConnectIns.setTimeout(60000);//设置socket超时时间为60秒
         //将socket加入到无主链接字典中
         unOwnedConnect[newConnectIns.sid.toString()] = newConnectIns;
         //添加相关事件
