@@ -348,7 +348,6 @@ execFuncMap[0x00FF0003] = function(sid,dataObj){
                     obj["cmd"] = 0x00FF0004;
                     //向客户端发送数据
                     var sock = getSocketByUIDAndSID(s_id,u_id);
-
                     //登陆服务回执 s_to_c
                     if(sock){
                         sock.write(JSON.stringify(obj));
@@ -356,6 +355,28 @@ execFuncMap[0x00FF0003] = function(sid,dataObj){
                 }
                 //结束socket,并发送掉线通知
                 preSock.end(JSON.stringify({"cmd":0x00FF0007,"seq":(seq + 1),"code":259,"reason":"其它端登陆,您已经被踢"}));
+            }else{
+                //新用户登录
+                var sidKey = sid.toString();
+                //向当前的socket链接发送用户登录成功消息
+                //将socket链接从unOwnedConnect移动到ownedConnect中
+                if(unOwnedConnect.hasOwnProperty(sidKey))
+                {
+                    //添加到新
+                    ownedConnect[sidKey] = unOwnedConnect[sidKey];
+                    //移除
+                    unOwnedConnect[sidKey] = null;
+                    delete unOwnedConnect[sidKey];
+                    //添加到登陆MAP
+                    ownedConnectUIDMap[uidKey] = ownedConnect[sidKey];
+                }
+                resObj["cmd"] = 0x00FF0004;
+                //向客户端发送数据
+                var sock = getSocketByUIDAndSID(sid,uid);
+                //登陆服务回执 s_to_c
+                if(sock){
+                    sock.write(JSON.stringify(resObj));
+                }
             }
 
         }else{
