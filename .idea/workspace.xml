@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="56c07df5-0754-42fb-8e56-93b50b45f6ed" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/server/AppDelegate.js" afterPath="$PROJECT_DIR$/server/AppDelegate.js" />
     </list>
     <ignored path="chachaserver.iws" />
@@ -93,33 +92,27 @@
       <file leaf-file-name="AppDelegate.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/server/AppDelegate.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.8747913">
-              <caret line="376" column="25" selection-start-line="376" selection-start-column="25" selection-end-line="376" selection-end-column="25" />
+            <state vertical-scroll-proportion="0.75792986">
+              <caret line="343" column="54" selection-start-line="343" selection-start-column="54" selection-end-line="343" selection-end-column="54" />
               <folding>
-                <element signature="n#!!block;n#start#0" expanded="false" />
-                <element signature="e#2838#3333#0" expanded="false" />
-                <element signature="e#3382#3931#0" expanded="false" />
-                <element signature="e#3979#4024#0" expanded="false" />
                 <element signature="n#!!block;n#createConnectId#0" expanded="false" />
-                <element signature="n#!!block;n#analyzeDataPackage#0" expanded="false" />
                 <element signature="n#!!block;n#createToken#0" expanded="false" />
-                <element signature="e#11896#12620#0" expanded="false" />
-                <element signature="e#12680#13673#0" expanded="false" />
-                <element signature="e#13733#14799#0" expanded="false" />
-                <element signature="e#14857#15987#0" expanded="false" />
-                <element signature="e#16057#16830#0" expanded="false" />
-                <element signature="e#16888#17695#0" expanded="false" />
+                <element signature="e#11967#12691#0" expanded="false" />
+                <element signature="e#12751#13744#0" expanded="false" />
+                <element signature="e#13804#14870#0" expanded="false" />
+                <element signature="e#14928#16058#0" expanded="false" />
+                <element signature="e#16128#16901#0" expanded="false" />
+                <element signature="e#16959#17766#0" expanded="false" />
                 <element signature="n#!!block;n#roomStatusNotify#0" expanded="false" />
-                <element signature="e#18267#21458#0" expanded="false" />
+                <element signature="e#18338#21529#0" expanded="false" />
                 <element signature="n#!!block;n#userStatusChangeNotify#0" expanded="false" />
-                <element signature="e#22090#23257#0" expanded="false" />
-                <element signature="e#23315#24165#0" expanded="false" />
+                <element signature="e#22161#23328#0" expanded="false" />
+                <element signature="e#23386#24236#0" expanded="false" />
                 <element signature="n#!!block;n#chatMSGNotify#0" expanded="false" />
-                <element signature="e#24697#25417#0" expanded="false" />
+                <element signature="e#24768#25488#0" expanded="false" />
                 <element signature="n#!!block;n#adminCMDNotify#0" expanded="false" />
-                <element signature="e#25960#26694#0" expanded="false" />
+                <element signature="e#26031#26765#0" expanded="false" />
                 <element signature="n#!!block;n#tongyongCMDNotify#0" expanded="false" />
-                <element signature="e#27246#27943#0" expanded="false" />
               </folding>
             </state>
           </provider>
@@ -347,7 +340,7 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="23" width="1280" height="723" extended-state="6" />
-    <editor active="true" />
+    <editor active="false" />
     <layout>
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.16640624" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
@@ -460,30 +453,24 @@
         <state vertical-scroll-proportion="0.0">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="n#!!block;n#start#0" expanded="false" />
-            <element signature="e#2838#3333#0" expanded="false" />
-            <element signature="e#3382#3931#0" expanded="false" />
-            <element signature="e#3979#4024#0" expanded="false" />
             <element signature="n#!!block;n#createConnectId#0" expanded="false" />
-            <element signature="n#!!block;n#analyzeDataPackage#0" expanded="false" />
             <element signature="n#!!block;n#createToken#0" expanded="false" />
-            <element signature="e#11896#12620#0" expanded="false" />
-            <element signature="e#12680#13673#0" expanded="false" />
-            <element signature="e#13733#14799#0" expanded="false" />
-            <element signature="e#14857#15987#0" expanded="false" />
-            <element signature="e#16057#16830#0" expanded="false" />
-            <element signature="e#16888#17695#0" expanded="false" />
+            <element signature="e#11967#12691#0" expanded="false" />
+            <element signature="e#12751#13744#0" expanded="false" />
+            <element signature="e#13804#14870#0" expanded="false" />
+            <element signature="e#14928#16058#0" expanded="false" />
+            <element signature="e#16128#16901#0" expanded="false" />
+            <element signature="e#16959#17766#0" expanded="false" />
             <element signature="n#!!block;n#roomStatusNotify#0" expanded="false" />
-            <element signature="e#18267#21458#0" expanded="false" />
+            <element signature="e#18338#21529#0" expanded="false" />
             <element signature="n#!!block;n#userStatusChangeNotify#0" expanded="false" />
-            <element signature="e#22090#23257#0" expanded="false" />
-            <element signature="e#23315#24165#0" expanded="false" />
+            <element signature="e#22161#23328#0" expanded="false" />
+            <element signature="e#23386#24236#0" expanded="false" />
             <element signature="n#!!block;n#chatMSGNotify#0" expanded="false" />
-            <element signature="e#24697#25417#0" expanded="false" />
+            <element signature="e#24768#25488#0" expanded="false" />
             <element signature="n#!!block;n#adminCMDNotify#0" expanded="false" />
-            <element signature="e#25960#26694#0" expanded="false" />
+            <element signature="e#26031#26765#0" expanded="false" />
             <element signature="n#!!block;n#tongyongCMDNotify#0" expanded="false" />
-            <element signature="e#27246#27943#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -529,30 +516,24 @@
         <state vertical-scroll-proportion="0.0">
           <caret line="94" column="3" selection-start-line="94" selection-start-column="3" selection-end-line="94" selection-end-column="3" />
           <folding>
-            <element signature="n#!!block;n#start#0" expanded="false" />
-            <element signature="e#2838#3333#0" expanded="false" />
-            <element signature="e#3382#3931#0" expanded="false" />
-            <element signature="e#3979#4024#0" expanded="false" />
             <element signature="n#!!block;n#createConnectId#0" expanded="false" />
-            <element signature="n#!!block;n#analyzeDataPackage#0" expanded="false" />
             <element signature="n#!!block;n#createToken#0" expanded="false" />
-            <element signature="e#11896#12620#0" expanded="false" />
-            <element signature="e#12680#13673#0" expanded="false" />
-            <element signature="e#13733#14799#0" expanded="false" />
-            <element signature="e#14857#15987#0" expanded="false" />
-            <element signature="e#16057#16830#0" expanded="false" />
-            <element signature="e#16888#17695#0" expanded="false" />
+            <element signature="e#11967#12691#0" expanded="false" />
+            <element signature="e#12751#13744#0" expanded="false" />
+            <element signature="e#13804#14870#0" expanded="false" />
+            <element signature="e#14928#16058#0" expanded="false" />
+            <element signature="e#16128#16901#0" expanded="false" />
+            <element signature="e#16959#17766#0" expanded="false" />
             <element signature="n#!!block;n#roomStatusNotify#0" expanded="false" />
-            <element signature="e#18267#21458#0" expanded="false" />
+            <element signature="e#18338#21529#0" expanded="false" />
             <element signature="n#!!block;n#userStatusChangeNotify#0" expanded="false" />
-            <element signature="e#22090#23257#0" expanded="false" />
-            <element signature="e#23315#24165#0" expanded="false" />
+            <element signature="e#22161#23328#0" expanded="false" />
+            <element signature="e#23386#24236#0" expanded="false" />
             <element signature="n#!!block;n#chatMSGNotify#0" expanded="false" />
-            <element signature="e#24697#25417#0" expanded="false" />
+            <element signature="e#24768#25488#0" expanded="false" />
             <element signature="n#!!block;n#adminCMDNotify#0" expanded="false" />
-            <element signature="e#25960#26694#0" expanded="false" />
+            <element signature="e#26031#26765#0" expanded="false" />
             <element signature="n#!!block;n#tongyongCMDNotify#0" expanded="false" />
-            <element signature="e#27246#27943#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -830,33 +811,27 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/server/AppDelegate.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.8747913">
-          <caret line="376" column="25" selection-start-line="376" selection-start-column="25" selection-end-line="376" selection-end-column="25" />
+        <state vertical-scroll-proportion="0.75792986">
+          <caret line="343" column="54" selection-start-line="343" selection-start-column="54" selection-end-line="343" selection-end-column="54" />
           <folding>
-            <element signature="n#!!block;n#start#0" expanded="false" />
-            <element signature="e#2838#3333#0" expanded="false" />
-            <element signature="e#3382#3931#0" expanded="false" />
-            <element signature="e#3979#4024#0" expanded="false" />
             <element signature="n#!!block;n#createConnectId#0" expanded="false" />
-            <element signature="n#!!block;n#analyzeDataPackage#0" expanded="false" />
             <element signature="n#!!block;n#createToken#0" expanded="false" />
-            <element signature="e#11896#12620#0" expanded="false" />
-            <element signature="e#12680#13673#0" expanded="false" />
-            <element signature="e#13733#14799#0" expanded="false" />
-            <element signature="e#14857#15987#0" expanded="false" />
-            <element signature="e#16057#16830#0" expanded="false" />
-            <element signature="e#16888#17695#0" expanded="false" />
+            <element signature="e#11967#12691#0" expanded="false" />
+            <element signature="e#12751#13744#0" expanded="false" />
+            <element signature="e#13804#14870#0" expanded="false" />
+            <element signature="e#14928#16058#0" expanded="false" />
+            <element signature="e#16128#16901#0" expanded="false" />
+            <element signature="e#16959#17766#0" expanded="false" />
             <element signature="n#!!block;n#roomStatusNotify#0" expanded="false" />
-            <element signature="e#18267#21458#0" expanded="false" />
+            <element signature="e#18338#21529#0" expanded="false" />
             <element signature="n#!!block;n#userStatusChangeNotify#0" expanded="false" />
-            <element signature="e#22090#23257#0" expanded="false" />
-            <element signature="e#23315#24165#0" expanded="false" />
+            <element signature="e#22161#23328#0" expanded="false" />
+            <element signature="e#23386#24236#0" expanded="false" />
             <element signature="n#!!block;n#chatMSGNotify#0" expanded="false" />
-            <element signature="e#24697#25417#0" expanded="false" />
+            <element signature="e#24768#25488#0" expanded="false" />
             <element signature="n#!!block;n#adminCMDNotify#0" expanded="false" />
-            <element signature="e#25960#26694#0" expanded="false" />
+            <element signature="e#26031#26765#0" expanded="false" />
             <element signature="n#!!block;n#tongyongCMDNotify#0" expanded="false" />
-            <element signature="e#27246#27943#0" expanded="false" />
           </folding>
         </state>
       </provider>

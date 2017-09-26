@@ -118,8 +118,8 @@ function start(){
         })
 
         newConnectIns.on("error",function(err){
+            console.log("socket出错，断开");
             //客户端为正常断开socket也会触发这里,而不触发 end事件
-            console.log("socket出错断开");
             destroySocket(this);
             //防止socket异步处理后造成的服务器存储信息错乱
             if(this.endCompleteFunc != null){
@@ -339,6 +339,7 @@ execFuncMap[0x00FF0003] = function(sid,dataObj){
                     {
                         //添加到新
                         ownedConnect[sidKey] = unOwnedConnect[sidKey];
+                        ownedConnect[sidKey].uid = u_id;
                         //移除
                         unOwnedConnect[sidKey] = null;
                         delete unOwnedConnect[sidKey];
@@ -346,6 +347,7 @@ execFuncMap[0x00FF0003] = function(sid,dataObj){
                         ownedConnectUIDMap[uidKey] = ownedConnect[sidKey];
                     }
                     obj["cmd"] = 0x00FF0004;
+
                     //向客户端发送数据
                     var sock = getSocketByUIDAndSID(s_id,u_id);
                     //登陆服务回执 s_to_c
@@ -364,6 +366,7 @@ execFuncMap[0x00FF0003] = function(sid,dataObj){
                 {
                     //添加到新
                     ownedConnect[sidKey] = unOwnedConnect[sidKey];
+                    ownedConnect[sidKey].uid = uid;
                     //移除
                     unOwnedConnect[sidKey] = null;
                     delete unOwnedConnect[sidKey];
