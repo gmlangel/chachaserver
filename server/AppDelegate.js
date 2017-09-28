@@ -421,7 +421,7 @@ execFuncMap[0x00FF0005] = function(sid,dataObj){
             ownedConnectUIDMap[uidKey] = null;
             delete ownedConnectUIDMap[uidKey];
         }
-        sock.send(JSON.stringify({"cmd":0x00FF0006,"seq":seq + 1,"c_seq":seq}));
+        sock.write(JSON.stringify({"cmd":0x00FF0006,"seq":seq + 1,"c_seq":seq}));
     }
 }
 
@@ -457,7 +457,7 @@ execFuncMap[0x00FF0008] = function(sid,dataObj){
             resObj.c_seq = seq;
             resObj.fe = "用户不存在";
         }
-        sock.send(JSON.stringify(resObj));
+        sock.write(JSON.stringify(resObj));
     }
 }
 
@@ -471,7 +471,7 @@ execFuncMap[0x00FF000A] = function(sid,dataObj){
         return
     }
     if(uid < 0){
-        sock.send(JSON.stringify({"cmd":0x00FF000B,"seq":seq + 1,"c_seq":seq,"code":257,"fe":"用户信息不存在,无法更新"}));
+        sock.write(JSON.stringify({"cmd":0x00FF000B,"seq":seq + 1,"c_seq":seq,"code":257,"fe":"用户信息不存在,无法更新"}));
         return;
     }
     var ln = userIDForNickNameMap[uid] || "";
@@ -500,7 +500,7 @@ execFuncMap[0x00FF000A] = function(sid,dataObj){
         resObj.c_seq = seq;
         resObj.fe = "用户信息不存在,无法更新数据";
     }
-    sock.send(JSON.stringify(resObj));
+    sock.write(JSON.stringify(resObj));
 
 }
 
@@ -514,7 +514,7 @@ execFuncMap[0x00FF000C] = function(sid,dataObj){
         return
     }
     if(uid < 0){
-        sock.send(JSON.stringify({"cmd":0x00FF000D,"seq":seq + 1,"c_seq":seq,"code":257,"fe":"用户信息不存在,无法创建room"}));
+        sock.write(JSON.stringify({"cmd":0x00FF000D,"seq":seq + 1,"c_seq":seq,"code":257,"fe":"用户信息不存在,无法创建room"}));
         return;
     }
     //创建频道
@@ -544,7 +544,7 @@ execFuncMap[0x00FF000C] = function(sid,dataObj){
     resObj.fe = "";
     resObj.rid = rid;
     resObj.rc = roomInfo.token;
-    sock.send(JSON.stringify(resObj));
+    sock.write(JSON.stringify(resObj));
 
 }
 
@@ -558,7 +558,7 @@ execFuncMap[0x00FF000E] = function(sid,dataObj){
         return
     }
     //if(uid < 0){
-    //    sock.send(JSON.stringify({"cmd":0x00FF000D,"seq":seq + 1,"c_seq":seq,"code":257,"fe":"用户信息不存在,无法创建room"}));
+    //    sock.write(JSON.stringify({"cmd":0x00FF000D,"seq":seq + 1,"c_seq":seq,"code":257,"fe":"用户信息不存在,无法创建room"}));
     //    return;
     //}
     //遍历roomMap,封装返回数据
@@ -575,7 +575,7 @@ execFuncMap[0x00FF000E] = function(sid,dataObj){
         }
     }
     //向客户端返回结果
-    sock.send(JSON.stringify(resObj));
+    sock.write(JSON.stringify(resObj));
 }
 
 //删除room
@@ -588,7 +588,7 @@ execFuncMap[0x00FF0011] = function(sid,dataObj){
         return
     }
     if(rid < 0){
-        sock.send(JSON.stringify({"cmd":0x00FF0012,"seq":seq + 1,"c_seq":seq,"code":260,"fe":"删除room失败,room不存在"}));
+        sock.write(JSON.stringify({"cmd":0x00FF0012,"seq":seq + 1,"c_seq":seq,"code":260,"fe":"删除room失败,room不存在"}));
         return;
     }
     //遍历roomMap,封装返回数据
@@ -610,7 +610,7 @@ execFuncMap[0x00FF0011] = function(sid,dataObj){
         resObj.fe = "删除room失败,room不存在";
     }
     //向客户端返回结果
-    sock.send(JSON.stringify(resObj));
+    sock.write(JSON.stringify(resObj));
 }
 
 /**
@@ -630,7 +630,7 @@ function roomStatusNotify(uidArr,messageJson){
         var uid = uidArr[i];
         var sock = getSocketByUIDAndSID(-1,uid);
         if(sock){
-            sock.send(dataStr);
+            sock.write(dataStr);
         }
     }
 }
@@ -661,7 +661,7 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
                 resobj.code = 262;
                 resobj.fe = "进入room失败,邀请码无效"
                 //向请求端发送回执消息
-                sock.send(JSON.stringify(resobj));
+                sock.write(JSON.stringify(resobj));
                 return;
             }
             var j = roominfo.userArr.length;
@@ -688,7 +688,7 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
                 resobj.rn = roominfo.roomName;
                 resobj.ri = roominfo.roomImage;
                 resobj.ua = roominfo.userArr;
-                sock.send(JSON.stringify(resobj));
+                sock.write(JSON.stringify(resobj));
                 //向教室内的其它用户发送 用户状态变更通知
                 var notifyUser = {};
                 notifyUser.uid = user.uid;
@@ -715,13 +715,13 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
                 resobj.code = 261;
                 resobj.fe = "进入room失败,该用户已经再room中"
                 //向请求端发送回执消息
-                sock.send(JSON.stringify(resobj));
+                sock.write(JSON.stringify(resobj));
             }
         }else{
             resobj.code = 260;
             resobj.fe = "进入room失败,room不存在"
             //向请求端发送回执消息
-            sock.send(JSON.stringify(resobj));
+            sock.write(JSON.stringify(resobj));
         }
 
     }
@@ -746,7 +746,7 @@ function userStatusChangeNotify(uidArr,changedUserInfoArr){
         var uid = uidArr[i];
         var sock = getSocketByUIDAndSID(-1,uid);
         if(sock){
-            sock.send(resString);
+            sock.write(resString);
         }
     }
 }
@@ -841,7 +841,7 @@ function chatMSGNotify(uidArr,rid,msgArr){
         var uid = uidArr[i];
         var sock = getSocketByUIDAndSID(-1,uid);
         if(sock){
-            sock.send(notifyStr);
+            sock.write(notifyStr);
         }
     }
 }
@@ -890,7 +890,7 @@ function adminCMDNotify(uidArr,rid,adminCMDArr){
         var uid = uidArr[i];
         var sock = getSocketByUIDAndSID(-1,uid);
         if(sock){
-            sock.send(notifyStr);
+            sock.write(notifyStr);
         }
     }
 }
@@ -939,7 +939,7 @@ function tongyongCMDNotify(uidArr,rid,tongyongCMDArr){
         var uid = uidArr[i];
         var sock = getSocketByUIDAndSID(-1,uid);
         if(sock){
-            sock.send(notifyStr);
+            sock.write(notifyStr);
         }
     }
 }
