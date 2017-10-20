@@ -526,7 +526,7 @@ execFuncMap[0x00FF000C] = function(sid,dataObj){
         roomName:dataObj["rn"] || "",/*room名称*/
         roomImage:dataObj["ri"] || "",/*room图标*/
         createTime:timeIntaval,/*创建时间*/
-        token:createToken(uid),/*频道邀请码*/
+        token:createToken(uid)+rid.toString(16),/*频道邀请码*/
         owneerUID:uid,/*创建频道的人的ID*/
         userArr:[],/*当前频道中的人的信息数组*/
         messageArr:[],/*文本消息记录最后10条*/
@@ -643,18 +643,26 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
     if(sock){
         var user = {};
         user.uid = uid;
-        user.nickName = data.nn || "";
-        user.headerImage = data.hi || "";
-        user.sex = data.sex || 1;
-        user.ca = data.ca;//用户自定义属性 object类型
+        user.nickName = dataObj.nn || "";
+        user.headerImage = dataObj.hi || "";
+        user.sex = dataObj.sex || 1;
+        user.ca = dataObj.ca;//用户自定义属性 object类型
 
         var seq = dataObj["seq"] || 0;
-        var rid = dataObj.rid || -1;
-        var roominfo = roomMap[rid];
+        var roomCode = dataObj.rc || "";
         var resobj = {};
         resobj.cmd = 0x00FF0015;
         resobj.seq = seq + 1;
         resobj.c_seq = seq;
+        if(roomCode == "" || roomCode.length < 33){
+            resobj.code = 262;
+            resobj.fe = "进入room失败,邀请码无效"
+            //向请求端发送回执消息
+            sock.write(JSON.stringify(resobj));
+            return;
+        }
+        var rid = parseInt("0x" + roomCode.substring(32,roomCode.length));
+        var roominfo = roomMap[rid];
         if(roominfo){
             var allowJoin = roominfo.token == dataObj.rc;//是否允许进入教室
             if(!allowJoin){
@@ -752,7 +760,7 @@ function userStatusChangeNotify(uidArr,changedUserInfoArr){
 }
 
 //退出教室
-execFuncMap[0x00FF0014] = function(sid,dataObj){
+execFuncMap[0x00FF0016] = function(sid,dataObj){
     var uid = dataObj.uid || -1;
     uid = parseInt(uid);
     var rid = dataObj.rid || -1;
