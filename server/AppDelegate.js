@@ -275,7 +275,7 @@ function createToken(uid){
     var date = new Date().valueOf();
     var tokenStr = date + "_" + uid;
     var md5 = crypto.createHash('md5');
-    return md5.update(password).digest('hex');
+    return md5.update(tokenStr).digest('hex');
 }
 
 //心跳服务
