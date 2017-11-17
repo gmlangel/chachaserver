@@ -197,6 +197,7 @@ function destroySocket(soc){
     var sidKey = soc.sid.toString();
     var uidKey = soc.uid.toString();
     var sid = soc.sid;
+    var uid = soc.uid;
     try{
         if(unOwnedConnect.hasOwnProperty(sidKey)){
             unOwnedConnect[sidKey] = null;
@@ -643,8 +644,8 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
     if(sock){
         var user = {};
         user.uid = uid;
-        user.nickName = dataObj.nn || "";
-        user.headerImage = dataObj.hi || "";
+        user.nn = dataObj.nn || "";
+        user.hi = dataObj.hi || "";
         user.sex = dataObj.sex || 1;
         user.ca = dataObj.ca;//用户自定义属性 object类型
 
@@ -700,8 +701,8 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
                 //向教室内的其它用户发送 用户状态变更通知
                 var notifyUser = {};
                 notifyUser.uid = user.uid;
-                notifyUser.nickName = user.nickName;
-                notifyUser.headerImage = user.headerImage;
+                notifyUser.nn = user.nn;
+                notifyUser.hi = user.hi;
                 notifyUser.sex = user.sex;
                 notifyUser.ca = user.ca;//用户自定义属性 object类型
                 notifyUser.type = 1;//是进入教室 还是退出教室
@@ -918,7 +919,7 @@ execFuncMap[0x00FF001C] = function(sid,dataObj){
             //填充被推送用户的ID数组
             if(userArr[i].uid != uid)
             {
-                userIDArr.push(uid);
+                userIDArr.push(userArr[i].uid);
             }
         }
         //封装通知的信息数据体
