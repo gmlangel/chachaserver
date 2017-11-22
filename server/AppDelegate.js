@@ -140,7 +140,7 @@ function start(){
 
         newConnectIns.write('欢迎加入茶茶服务器');
     });
-    mainServer.listen(mainServerPort,function(){
+    mainServer.listen(mainServerPort,"0.0.0.0",function(){
         console.log('服务器启动成功')
     })
 }

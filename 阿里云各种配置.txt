@@ -1,0 +1,10 @@
+1.linux  配置 nginx 环境变量
+sudo vim /etc/profile
+按 i键
+将 export PATH=/usr/local/nginx/sbin:$PATH填入其中，  按esc  然后  shift + z 两次保存。
+
+
+2.centos安装php php-fpm 以及 配置nginx
+创建一个下载目录 
+然后进入这个目录
+下载压缩包 wget http://cn2.php.net/distributions/php-7.1.11.tar.bz2
