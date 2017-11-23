@@ -7,7 +7,7 @@ var crypto = require('crypto');
 
 //对象以及属性声明----------------------------------------------------------------------------------------------------------
 var mainServer = null;//主服务器
-var mainServerPort = 49999;
+var mainServerPort = 48888;
 var connectIdOffset = 0;//客户端连接的ID ,用于生成 '客户端连接ID池';
 var connectIdPool = [];//客户端连接ID池
 var unOwnedConnect = {};//无主连接字典.用于记录未经登陆的用户的socket链接 {sid:socket}

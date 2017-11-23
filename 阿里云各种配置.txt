@@ -1,3 +1,6 @@
+查看进程的命令 ps -ef | grep AppDelegate
+查看端口占用的命令 netstat -tunlp
+
 1.linux  配置 nginx 环境变量
 sudo vim /etc/profile
 按 i键
@@ -8,3 +11,5 @@ sudo vim /etc/profile
 创建一个下载目录 
 然后进入这个目录
 下载压缩包 wget http://cn2.php.net/distributions/php-7.1.11.tar.bz2
+解压 tar -xvf php-7.1.11.tar.bz2
+进入解压后的目录 cd 
