@@ -1,15 +1,22 @@
-查看进程的命令 ps -ef | grep AppDelegate
-查看端口占用的命令 netstat -tunlp
+1.查看进程的命令 ps -ef | grep AppDelegate
+2.查看端口占用的命令 netstat -tunlp
 
-1.linux  配置 nginx 环境变量
+3.设置环境变量的方法 如：（linux  配置 nginx 环境变量）
 sudo vim /etc/profile
 按 i键
 将 export PATH=/usr/local/nginx/sbin:$PATH填入其中，  按esc  然后  shift + z 两次保存。
 
+4.下载压缩包的方法 wget http://cn2.php.net/distributions/php-7.1.11.tar.bz2
+5.解压的方法 tar -xvf php-7.1.11.tar.bz2
 
-2.centos安装php php-fpm 以及 配置nginx
-创建一个下载目录 
-然后进入这个目录
-下载压缩包 wget http://cn2.php.net/distributions/php-7.1.11.tar.bz2
-解压 tar -xvf php-7.1.11.tar.bz2
-进入解压后的目录 cd 
+
+
+阿里云服务器配置大纲
+1. 选择服务器镜像 为：BT-Panel，等待处理完毕
+2. 域名购买 与绑定（可以不用备案，因为实际环境中可能只用ip去访问）
+3. 防火墙设置 添加要进行访问的 端口白名单
+4. 重启服务器
+5. 进入BT-Panel服务器
+6. 利用可视化界面 安装 nginx  mysql  pm2管理器（集成了nodejs + nvm + npm） php5.4
+7. 如果想通过阿里云提供的外网服务器ip访问nodejs。则需要利用nodejs可视化工具配置nodejs项目。启动nodejs项目后 一定要做“映射”否则 外网求情没办法中转到内网的指定nodejs应用上。如（想要外网地址36.11.122.10:94378好用，就必须在nodejs的指定项目上添加映射，映射到nginx服务上的 test.top:94378，如此做的话只要nginx服务正常启动，那么外网请求就可以正常的被中转到nodejs的指定应用上）
+8. 如果想通过阿里云提供的外网服务器ip访问nginx，则可以利用可视化界面 启动nginx服务器，添加想要访问的站点，由于站点可以配置多可，所以可以设置默认站点，即利用外网ip 36.11.122.1 直接请求到的默认站点
