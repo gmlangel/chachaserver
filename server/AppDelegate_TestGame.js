@@ -69,7 +69,7 @@ roomMap[1] ={
 //主函数
 function start(){
 
-    mainServer = new WebSocketServer({ port: 31111,host:"192.168.1.101"});
+    mainServer = new WebSocketServer({ port: 31111,host:"0.0.0.0"});
     mainServer.on('connection', function (newConnectIns) {
         console.log('client connected');
         newConnectIns.sid = createConnectId();//为socket链接设置ID;
@@ -211,13 +211,10 @@ function destroySocket(soc){
                 userIDArr.push(userArr[i].uid);
             }
         }
-        console.log("a")
         if(wantRemoveObj){
-            console.log("b")
             wantRemoveObj.type = 0;
             //从用户信息数组中移除
             userArr.splice(wangtI,1);
-            console.log(userIDArr)
             //向其他用户发送用户变更通知
             userStatusChangeNotify(userIDArr,[wantRemoveObj]);
         }
@@ -241,11 +238,21 @@ function getSocketByUIDAndSID(sid,uid){
     var uidKey = uid.toString();
     if(unOwnedConnect.hasOwnProperty(sidKey)){
         sock = unOwnedConnect[sidKey];
+        if(sock.readyState != 1){
+            sock = null;
+        }
     }else if(ownedConnect.hasOwnProperty(sidKey)){
         sock = ownedConnect[sidKey];
+        if(sock.readyState != 1){
+            sock = null;
+        }
     }else if(ownedConnectUIDMap.hasOwnProperty(uidKey)){
         sock = ownedConnectUIDMap[uidKey];
+        if(sock.readyState != 1){
+            sock = null;
+        }
     }
+
     return sock;
 }
 
