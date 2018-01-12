@@ -1,15 +1,19 @@
-var WebSocketServer = require('ws').Server
-var wss = new WebSocketServer({ port: 31111,host:"172.16.221.198"});
-wss.on('connection', function (ws) {
-    console.log('client connected');
-    ws.on('message', function (message) {
-        console.log(message);
-        ws.send("OK你很棒")
-    });
-    ws.on('close',function(evt){
-    	console.log("断开");
-    })
-    ws.on('error',function(evt){
-    	console.log("发生错误")
-    })
-});
+MacOS版AC客户端周报:（2018.01.03）
+1.日均版本分布:2871
+        1.9.4 日活用户: 1985 占比: 69.13%
+        1.10 日活用户: 886 占比: 30.86%
+2.七日内崩溃数据:
+        Mac AC 1.9.4 
+                崩溃次数：380
+                崩溃人数：244
+                日均崩溃率：1.75%
+        Mac AC 1.10.0
+                崩溃次数：393
+                崩溃人数：188
+                日均崩溃率：3.03%
+3.MacAC周开发进度
+Mac AC 1.11.0版本完成度 100%，准备提测。
+svc 信令SDK重构进度 80%，部分信令已经单元测试通过。（进度不变，原因是王峰被调入到Mac AC 1.11版本的项目开发中）
+Mac AC 2.0前期调研，负责人：郭明龙。内容：
+调研使用Hybrid方式开发现有业务的可行性（主要解决 本地h5的更新维护、脚本跨域、资源管理、源生通讯等问题）。
+H5界面引擎的开发，应用技术（JS + Swift），开发进度完成50%，界面绘制框架与事件响应机制已经开发完毕。

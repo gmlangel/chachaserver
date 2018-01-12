@@ -993,6 +993,45 @@ execFuncMap[0x00FF101E] = function(sid,dataObj){
         waitTuiSongPosition[uid] ={"uid":uid,"x":dataObj.ca.x,"y":dataObj.ca.y}
     //}
 }
+
+//收到队长位置信息数据
+execFuncMap[0x00FF102E] = function(sid,dataObj){
+    var uid = dataObj.uid || -1;
+    uid = parseInt(uid);
+    if(uid <=0)
+    {
+        return;
+    }
+    // var rid = dataObj.rid || -1;
+    // var roominfo = roomMap[rid];
+    // if (roominfo) {
+    //     //添加到等待推送列表
+    //     waitTuiSongPosition[uid] ={"uid":uid,"x":dataObj.ca.x,"y":dataObj.ca.y}
+    // }
+    var notifyObj = {};
+    notifyObj.cmd = 0x00FF102F;
+    notifyObj.seq = 0;
+    notifyObj.code = 0;
+    notifyObj.rid = 1;
+    notifyObj.data = {"uid":uid,"x":dataObj.ca.x,"y":dataObj.ca.y};
+    var notifyStr = JSON.stringify(notifyObj);
+
+    var roomInfo = roomMap[1];
+    var arr = roomInfo.userArr;
+    var j = arr.length;
+    //向除队长之外的其它用户，推送队长的位置
+    for(var i=0;i<j;i++){
+        var key = arr[i].uid
+        if(uid == key){
+            continue;
+        }
+        //推送至客户端
+        var sock = getSocketByUIDAndSID(-1,key);
+        if(sock){
+            sock.send(notifyStr);
+        }
+    }
+}
 //临时使用
 function tuizuobiao(){
     var notifyObj = {};
