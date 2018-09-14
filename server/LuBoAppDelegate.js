@@ -70,19 +70,19 @@ function start(){
 
         newConnectIns.on("error",function(err){
             console.log("socket出错，断开");
-            //客户端为正常断开socket也会触发这里,而不触发 end事件
-            destroySocket(this);
-            //防止socket异步处理后造成的服务器存储信息错乱
-            if(this.endCompleteFunc != null){
-                if(this.endCompleteArgs){
-                    this.endCompleteFunc.apply(null,this.endCompleteArgs);
-                }else{
-                    this.endCompleteFunc();
-                }
-                this.endCompleteFunc = null;
-                this.endCompleteArgs = null;
-            }
-            this.destroy();
+            // //客户端为正常断开socket也会触发这里,而不触发 end事件
+            // destroySocket(this);
+            // //防止socket异步处理后造成的服务器存储信息错乱
+            // if(this.endCompleteFunc != null){
+            //     if(this.endCompleteArgs){
+            //         this.endCompleteFunc.apply(null,this.endCompleteArgs);
+            //     }else{
+            //         this.endCompleteFunc();
+            //     }
+            //     this.endCompleteFunc = null;
+            //     this.endCompleteArgs = null;
+            // }
+            // this.destroy();
         })
 
         newConnectIns.on("timeout",function(){
@@ -215,7 +215,10 @@ function getSocketByUIDAndSID(sid,uid){
     }else if(ownedConnectUIDMap.hasOwnProperty(uidKey)){
         sock = ownedConnectUIDMap[uidKey];
     }
-    return sock;
+    if(sock && sock.readyState == 'open')
+        return sock;
+    else
+        return null;
 }
 
 
@@ -223,13 +226,7 @@ function getSocketByUIDAndSID(sid,uid){
 execFuncMap[0x00FF0001] = function(sid,dataObj){
     var seq = dataObj["seq"] || 0;
     var lt = dataObj["lt"] || 0;
-    var sidKey = sid.toString();
-    var sock = null;
-    if(unOwnedConnect.hasOwnProperty(sidKey)){
-        sock = unOwnedConnect[sidKey];
-    }else if(ownedConnect.hasOwnProperty(sidKey)){
-        sock = ownedConnect[sidKey];
-    }
+    var sock = getSocketByUIDAndSID(sid,-1);
     //心跳服务 s_to_c
     if(sock){
         sock.write(JSON.stringify({cmd:0x00FF0002,seq:seq + 1,c_seq:seq,st:parseInt(new Date().valueOf() / 1000)}));
