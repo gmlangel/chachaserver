@@ -89,7 +89,7 @@ function start(){
             this.end("socket超时");
         })
 
-        newConnectIns.write(JSON.querystring.stringify({"cmd":0x00ff0000,"des":"欢迎加入茶茶服务器"}));
+        newConnectIns.write(JSON.stringify({"cmd":0x00ff0000,"des":"欢迎加入茶茶服务器"}));
     });
     mainServer.listen(mainServerPort,"0.0.0.0",function(){
         console.log('服务器启动成功')
