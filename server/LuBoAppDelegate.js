@@ -313,8 +313,14 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
             var preId = -1;
             for(var i = 0 ;i < j;i++){
                 if(roominfo.userArr[i].uid == user.uid){
-                    //教室内存在重复的用户
-                    preId = user.uid;
+                    var uidKey = roominfo.userArr[i].uid.toString();
+                    var presoc = ownedConnectUIDMap[uidKey];
+                    if(presoc && presoc == sock){
+                        //当前在教室的socket链接，与要进入教室的socket链接相同，证明是客户端逻辑的误操作（连续N次进入教室，未调用leaveroom）
+                    }else{
+                        //教室内存在重复的用户
+                        preId = user.uid;
+                    }
                 }else{
                     //将用户ID记录到集合,用于发送 用户状态变更通知
                     uidArr.push(roominfo.userArr[i].uid);
@@ -360,6 +366,43 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
                     tongyongCMDNotify([user.uid],rid,roominfo.tongyongCMDArr);
                 }
 
+    }
+}
+
+//退出教室
+execFuncMap[0x00FF0016] = function(sid,dataObj){
+    var uid = dataObj.uid || -1;
+    uid = parseInt(uid);
+    var rid = dataObj.rid || -1;
+    var roominfo = roomMap[rid];
+    if(roominfo){
+        //从room信息中移除用户信息
+        var userArr = roominfo.userArr;
+        var j = userArr.length;
+        var wantRemoveObj = null;
+        var wangtI = -1;
+        var userIDArr = [];
+        for(var i = 0 ;i<j; i++){
+            if(userArr[i].uid == uid){
+                wantRemoveObj = userArr[i];
+                wangtI = i;
+            }else{
+                //填充被推送用户的ID数组
+                userIDArr.push(uid);
+            }
+        }
+        if(wantRemoveObj){
+            wantRemoveObj.type = 0;
+            //从用户信息数组中移除
+            userArr.splice(wangtI,1);
+            //向其他用户发送用户变更通知
+            userStatusChangeNotify(userIDArr,[wantRemoveObj]);
+        }
+    }
+    var sock = getSocketByUIDAndSID(sid,uid)
+    if(sock){
+        //移除roomID与socket链接的绑定
+        sock.rid = -1;
     }
 }
 
