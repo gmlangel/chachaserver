@@ -123,19 +123,37 @@ function createConnectId(){
  * */
 function analyzeDataPackage(sid,dataBuffer){
     try{
-
         var dataStr = dataBuffer.toString();
-        var obj = JSON.parse(dataStr);
-        var cmd = obj["cmd"] || 0;
-        cmd = parseInt(cmd);
-        console.log("收到数据包",cmd.toString(16))
-        //如果存在处理函数,则进行处理
-        if(execFuncMap.hasOwnProperty(cmd) && typeof(execFuncMap[cmd]) == 'function'){
-            execFuncMap[cmd](sid,obj);
+        var dataStrArr = [];
+        if(dataStr.indexOf("}{") > -1){
+            //拆包
+            while(dataStr.indexOf("}{") > -1){
+                var idx = dataStr.indexOf("}{");
+                var str = dataStr.substring(0,idx + 1);
+                dataStr = dataStr.substring(idx + 1,dataStr.length);
+                dataStrArr.push(str);
+            }
+        }
+        dataStrArr.push(dataStr);
+        var j = dataStrArr.length;
+        for(var i = 0;i<j;i++){
+            try{
+                var obj = JSON.parse(dataStrArr[i]);
+                var cmd = obj["cmd"] || 0;
+                cmd = parseInt(cmd);
+                console.log("收到数据包",cmd.toString(16))
+                //如果存在处理函数,则进行处理
+                if(execFuncMap.hasOwnProperty(cmd) && typeof(execFuncMap[cmd]) == 'function'){
+                    execFuncMap[cmd](sid,obj);
+                }
+            }catch(errSub){
+                console.log(errSub);
+                console.log("数据包不是JSON字符串",dataStr);
+            }
         }
     }catch(err){
         console.log(err);
-        console.log("数据包不是JSON字符串",dataStr);
+        console.log("数据包拆分失败",dataStr);
     }
 }
 
@@ -235,27 +253,27 @@ execFuncMap[0x00FF0001] = function(sid,dataObj){
 
 
 
-/**
- * room状态通知
- * @param uidArr Array UID数组
- * @param messageJson Object 要推送的消息数据JSON形式
- * */
-function roomStatusNotify(uidArr,messageJson){
-    var j = uidArr.length;
-    var dataObj = {};
-    dataObj.code = 0;
-    dataObj.cmd = 0x00FF0013;
-    dataObj.seq = 0;
-    dataObj.msg = messageJson;
-    var dataStr = JSON.stringify(dataObj);
-    for(var i = 0 ;i < j;i++){
-        var uid = uidArr[i];
-        var sock = getSocketByUIDAndSID(-1,uid);
-        if(sock){
-            sock.write(dataStr);
-        }
-    }
-}
+// /**
+//  * room状态通知
+//  * @param uidArr Array UID数组
+//  * @param messageJson Object 要推送的消息数据JSON形式
+//  * */
+// function roomStatusNotify(uidArr,messageJson){
+//     var j = uidArr.length;
+//     var dataObj = {};
+//     dataObj.code = 0;
+//     dataObj.cmd = 0x00FF0013;
+//     dataObj.seq = 0;
+//     dataObj.msg = messageJson;
+//     var dataStr = JSON.stringify(dataObj);
+//     for(var i = 0 ;i < j;i++){
+//         var uid = uidArr[i];
+//         var sock = getSocketByUIDAndSID(-1,uid);
+//         if(sock){
+//             sock.write(dataStr);
+//         }
+//     }
+// }
 
 //进入教室
 execFuncMap[0x00FF0014] = function(sid,dataObj){
@@ -271,6 +289,7 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
         user.hi = dataObj.hi || "";
         user.sex = dataObj.sex || 1;
         user.ca = dataObj.ca;//用户自定义属性 object类型
+        user.type = 1;
         var seq = dataObj["seq"] || 0;
         var resobj = {};
         resobj.cmd = 0x00FF0015;
@@ -298,12 +317,12 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
                 roomid:rid,/*id*/
                 startTimeInterval:beginTime,/*课程开始时间*/
                 teachingTmaterialScript:scriptPath,/*该教室的教材脚本地址*/
-                createTime:timeIntaval,/*创建时间*/
                 userArr:[],/*当前频道中的人的信息数组*/
                 messageArr:[],/*文本消息记录最后10条*/
                 adminCMDArr:[],/*管理员命令集合*/
                 tongyongCMDArr:[]/*通用教学命令集合*/
             }
+            roomMap[rid] = roomInfo;
             //加载教室教材脚本
             loadTeachingTmaterialScript(scriptPath);
         }
@@ -350,7 +369,7 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
                 notifyUser.hi = user.hi;
                 notifyUser.sex = user.sex;
                 notifyUser.ca = user.ca;//用户自定义属性 object类型
-                notifyUser.type = 1;//是进入教室 还是退出教室
+                notifyUser.type = user.type;//是进入教室 还是退出教室
                 userStatusChangeNotify(uidArr,[notifyUser]);
                 //向该用户推送教室内缓存的文本消息通知
                 if(roominfo.messageArr.length > 0){
@@ -360,10 +379,6 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
                 if(roominfo.adminCMDArr.length > 0)
                 {
                     adminCMDNotify([user.uid],rid,roominfo.adminCMDArr);
-                }
-                //向该用户推送教学命令通知
-                if(roominfo.tongyongCMDArr.length > 0){
-                    tongyongCMDNotify([user.uid],rid,roominfo.tongyongCMDArr);
                 }
 
     }
@@ -440,6 +455,7 @@ function closePreUserSocket(sid,uid){
 */
 function newUserClientIn(sid,uid){
                 var sidKey = sid.toString();
+                var uidKey = uid.toString();
                 //向当前的socket链接发送用户登录成功消息
                 //将socket链接从unOwnedConnect移动到ownedConnect中
                 if(unOwnedConnect.hasOwnProperty(sidKey))
@@ -596,7 +612,7 @@ function adminCMDNotify(uidArr,rid,adminCMDArr){
     }
 }
 
-//发送通用教学命令
+//上报答题结果
 execFuncMap[0x00FF001C] = function(sid,dataObj){
     var uid = dataObj.uid || -1;
     uid = parseInt(uid);
@@ -607,31 +623,24 @@ execFuncMap[0x00FF001C] = function(sid,dataObj){
     var rid = sock.rid || -1;
     var roominfo = roomMap[rid];
     if(roominfo){
-        //从room信息中移除用户信息
-        var userArr = roominfo.userArr;
-        var j = userArr.length;
-        var userIDArr = [];
-        for(var i = 0 ;i<j; i++){
-            //填充被推送用户的ID数组
-            if(userArr[i].uid != uid)
-            {
-                userIDArr.push(userArr[i].uid);
-            }
+        //检查是否所有人都答题完毕
+        if(false){
+            //取出下一个教学脚本，下发给所有人
+            var resdata = {};
+            //从room信息中移除用户信息
+            var userArr = roominfo.userArr;
+
+            //下发下一个教学脚本
+            sendTeachScriptNotify(userIDArr,rid,[resdata]);
         }
-        //封装通知的信息数据体
-        var serverTime = new Date().valueOf();
-        var data = {suid:uid,st:serverTime,lt:dataObj.lt,data:dataObj.data};
-        //将通用教学命令存放在教学集合中
-        roominfo.tongyongCMDArr.push(data);
-        //发送管理员命令通知
-        tongyongCMDNotify(userIDArr,rid,[data]);
+        
     }
 }
 
 /**
- * 发送通用教学命令通知
+ * 下发教学脚本
  * */
-function tongyongCMDNotify(uidArr,rid,tongyongCMDArr){
+function sendTeachScriptNotify(uidArr,rid,tongyongCMDArr){
     var notifyObj = {};
     notifyObj.cmd = 0x00FF001D;
     notifyObj.seq = 0;
@@ -649,33 +658,33 @@ function tongyongCMDNotify(uidArr,rid,tongyongCMDArr){
     }
 }
 
-//更新用户状态
-execFuncMap[0x00FF001E] = function(sid,dataObj){
-    var uid = dataObj.uid || -1;
-    uid = parseInt(uid);
-    var rid = dataObj.rid || -1;
-    var roominfo = roomMap[rid];
-    if (roominfo) {
-        var wantObj = null;
-        var userArr = roominfo.userArr;
-        var j = userArr.length;
-        var uidArr = [];
-        for (var i = 0; i < j; i++) {
-            if (userArr[i].uid == uid) {
-                //更新用户状态
-                wantObj = userArr[i];
-                wantObj.ca = dataObj.ca;
-            }else{
-                //记录要推送的用户ID
-                uidArr.push(userArr[i].uid)
-            }
-        }
-        if(wantObj != null){
-            //发送用户状态信息变更通知
-            userStatusChangeNotify(uidArr,[wantObj]);
-        }
-    }
-}
+// //更新用户状态
+// execFuncMap[0x00FF001E] = function(sid,dataObj){
+//     var uid = dataObj.uid || -1;
+//     uid = parseInt(uid);
+//     var rid = dataObj.rid || -1;
+//     var roominfo = roomMap[rid];
+//     if (roominfo) {
+//         var wantObj = null;
+//         var userArr = roominfo.userArr;
+//         var j = userArr.length;
+//         var uidArr = [];
+//         for (var i = 0; i < j; i++) {
+//             if (userArr[i].uid == uid) {
+//                 //更新用户状态
+//                 wantObj = userArr[i];
+//                 wantObj.ca = dataObj.ca;
+//             }else{
+//                 //记录要推送的用户ID
+//                 uidArr.push(userArr[i].uid)
+//             }
+//         }
+//         if(wantObj != null){
+//             //发送用户状态信息变更通知
+//             userStatusChangeNotify(uidArr,[wantObj]);
+//         }
+//     }
+// }
 
 //主入口逻辑部分--------------------------------
 if(require.main === module){
