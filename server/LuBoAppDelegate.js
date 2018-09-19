@@ -4,6 +4,9 @@
 //class导入----------------------------------------------------------------------------------------------------------
 var netClass = require("net");
 var crypto = require('crypto');
+var http = require('http');
+var querystring = require('querystring');
+
 
 //对象以及属性声明----------------------------------------------------------------------------------------------------------
 var mainServer = null;//主服务器
@@ -29,7 +32,8 @@ var roleMap = {
     "stuRole":stuRole
 }
 
-var roomMap = {};
+var roomMap = {};//教室字典
+var teachScriptMap = {};//教学脚本字典
 
 
 //0x00ff0000 socket接入成功
@@ -37,6 +41,31 @@ var roomMap = {};
 //0x00FF0002 s2c心跳
 //0x00FF0007 被踢掉线
 //函数声明---------------------------------------------------------------------------------------------------------------
+
+//http请求封装 -------------------
+var contents = querystring.stringify({
+    name:'guominglong',
+    email:'guominglong@51talk.com',
+    address:'gml'
+});
+var options = { 
+    hostname: '39.106.135.11', 
+    port: 80, 
+    path: '/pay/pay_callback?', 
+    method: 'GET' 
+}; 
+var globelDate = new Date().valueOf();//全局服务器时间戳
+//开启计时器 ,每秒执行一次
+setInterval(function(){
+    globelDate = new Date().valueOf();//更新服务器时间
+    var room = null;
+    for(var key in roomMap){
+        room = roomMap[key]
+        updateRoomState(room);
+    }
+},1000);
+
+
 //主函数
 function start(){
     mainServer = netClass.createServer(function (newConnectIns){
@@ -239,6 +268,20 @@ function getSocketByUIDAndSID(sid,uid){
         return null;
 }
 
+/**
+轮询计算并更新教室状态
+*/
+function updateRoomState(roomInfo){
+    if(roomInfo.isStart){
+        //已经开始且教材脚本已经加载完毕
+        console.log("开始，开始，开始");
+    }else{
+        //还未开始
+        roomInfo.isStart = globelDate > roomInfo.startTimeInterval && teachScriptMap[roomInfo.teachingTmaterialScriptID];
+        console.log("课程未开始");
+    }
+}
+
 
 //心跳服务
 execFuncMap[0x00FF0001] = function(sid,dataObj){
@@ -277,7 +320,7 @@ execFuncMap[0x00FF0001] = function(sid,dataObj){
 
 //进入教室
 execFuncMap[0x00FF0014] = function(sid,dataObj){
-    var scriptPath = dataObj["tts"];//该教室的教材脚本地址
+    var scriptID = dataObj["tts"];//该教室的教材脚本ID
     var beginTime = dataObj["sti"];//课程开始时间
     var uid = dataObj.uid || -1;
     uid = parseInt(uid);
@@ -315,8 +358,10 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
             //如果教室不存在，则创建教室
             var roomInfo = {
                 roomid:rid,/*id*/
-                startTimeInterval:beginTime,/*课程开始时间*/
-                teachingTmaterialScript:scriptPath,/*该教室的教材脚本地址*/
+                isStart:false,/*是否已经开始*/
+                currentTimeInterval:0,/*用于进行各种时间比对及计算*/
+                startTimeInterval:0,/*课程开始时间beginTime*/
+                teachingTmaterialScriptID:scriptID,/*该教室的教材脚本地址*/
                 userArr:[],/*当前频道中的人的信息数组*/
                 messageArr:[],/*文本消息记录最后10条*/
                 adminCMDArr:[],/*管理员命令集合*/
@@ -324,7 +369,9 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
             }
             roomMap[rid] = roomInfo;
             //加载教室教材脚本
-            loadTeachingTmaterialScript(scriptPath);
+            loadTeachingTmaterialScript(scriptID);
+            //loadTeachingTmaterialScript(scriptID + 1);
+            //loadTeachingTmaterialScript(scriptID + 2);
         }
         var roominfo = roomMap[rid];
             var j = roominfo.userArr.length;
@@ -474,8 +521,37 @@ function newUserClientIn(sid,uid){
 /**
 加载教材对应的脚本
 */
-function loadTeachingTmaterialScript(scriptPath){
+function loadTeachingTmaterialScript(scriptId){
+//http://39.106.135.11/files
 
+    var contents = querystring.stringify({
+        name:'guominglong',
+        email:'guominglong@51talk.com',
+        address:'gml',
+        randomValue:new Date().valueOf()
+    });
+    options.path = "/" + scriptId + ".cof?randomValue=" + new Date().valueOf();
+    
+    var req = http.request(options, function (res) { 
+        console.log('STATUS: ' + res.statusCode); 
+        console.log('HEADERS: ' + JSON.stringify(res.headers)); 
+        res.setEncoding('utf8'); 
+        res.jsonStr = "";
+        res.on('data', function (chunk) {
+            res.jsonStr += chunk;
+            try{
+                var obj = JSON.parse(res.jsonStr);
+                teachScriptMap[obj.courseId] = obj;//存储加载后的脚本
+            }catch(errSub){
+                //console.log("=====>" + res.jsonStr)
+            }
+        }); 
+    }); 
+       
+    req.on('error', function (e) { 
+        console.log('problem with request: ' + e.message); 
+    }); 
+    req.end();
 }
 
 /**
