@@ -55,6 +55,7 @@ var options = {
     method: 'GET' 
 }; 
 var globelDate = new Date().valueOf();//全局服务器时间戳
+var updateOffset = 1//更新间隔默认为1秒
 //开启计时器 ,每秒执行一次
 setInterval(function(){
     globelDate = new Date().valueOf();//更新服务器时间
@@ -63,7 +64,7 @@ setInterval(function(){
         room = roomMap[key]
         updateRoomState(room);
     }
-},1000);
+},updateOffset * 1000);
 
 
 //主函数
@@ -238,6 +239,7 @@ function destroySocket(soc){
             wantRemoveObj.type = 0;
             //从用户信息数组中移除
             userArr.splice(wangtI,1);
+            roomInfo.userIdArr.splice(roomInfo.userIdArr.indexOf(uid),1);
             //向其他用户发送用户变更通知
             userStatusChangeNotify(userIDArr,[wantRemoveObj]);
         }
@@ -274,12 +276,79 @@ function getSocketByUIDAndSID(sid,uid){
 function updateRoomState(roomInfo){
     if(roomInfo.isStart){
         //已经开始且教材脚本已经加载完毕
-        console.log("开始，开始，开始");
+        //console.log("开始，开始，开始");
+        roomInfo.currentTimeInterval -= updateOffset;//更新时间计时器
+        if(roomInfo.currentTimeInterval <= 0)
+            roomInfo.allowNewScript = true;//已经达到超时时间，为了不影响之后的脚本运行，则应该直接执行下个脚本
+        if(roomInfo.allowNewScript == false)
+            return;
+        var cmdArr = [];
+        var j = teachScriptMap[roomInfo.teachingTmaterialScriptID].stepData.length;
+        while(roomInfo.currentStepIdx < j){
+            var scriptItem = getScriptByRoom(roomInfo)
+            var clientScriptItem = getCSByScript(0,scriptItem);//将服务端脚本转换为客户端可以执行的脚本命令
+            cmdArr.push(clientScriptItem)
+            //除了换页、延迟和上墙命令外，其它的命令都需要客户端做出响应后才能继续执行
+            if(scriptItem.type == "changePage"){
+                roomInfo.tongyongCMDArr.splice(0,roomInfo.tongyongCMDArr.length)//移除之前的批处理教学命令缓存
+                roomInfo.tongyongCMDArr.push(clientScriptItem);//添加新的教学命令缓存
+            }else if(scriptItem.type == "onWall" || scriptItem.type == "delay"){
+                roomInfo.tongyongCMDArr.push(clientScriptItem);//添加新的教学命令缓存
+            }else{
+                switch(scriptItem.type){
+                    case "templateCMD":
+                        roomInfo.waitAnswerUids = roomInfo.userIdArr.concat();
+                        //设置超时等待时间和等待回答响应的用户数组
+                        if(scriptItem.value)
+                        {
+                            roomInfo.currentTimeInterval = scriptItem.value.timeout || 30;
+                        }   
+                        else
+                            roomInfo.currentTimeInterval = 30;
+                        break;
+                    case "video":
+                        roomInfo.waitAnswerUids = roomInfo.userIdArr.concat();//需要所有人应答
+                        //设置超时等待时间
+                        if(scriptItem.value)
+                            roomInfo.currentTimeInterval = (scriptItem.value.endSecond || 1) - (scriptItem.value.beginSecond || 1) + 5
+                        else
+                            roomInfo.currentTimeInterval = 5;
+                        break;
+                    case "audio":
+                        roomInfo.waitAnswerUids = roomInfo.userIdArr.concat();//需要所有人应答
+                        //设置超时等待时间
+                        if(scriptItem.value)
+                            roomInfo.currentTimeInterval = (scriptItem.value.endSecond || 1) - (scriptItem.value.beginSecond || 1) + 5
+                        else
+                            roomInfo.currentTimeInterval = 5;
+                        break;
+                    default:
+                        console.log("不应该进入这个流程,roomInfo.currentTimeInterval 和 roomInfo.allowNewScript 必须同时设置")
+                        break;
+                }
+                roomInfo.currentQuestionId = scriptItem.id;//设置当前正在提问的问题ID
+                roomInfo.tongyongCMDArr.push(clientScriptItem)
+                roomInfo.allowNewScript = false;
+                break;
+            }
+        }
+        if(cmdArr.length > 0){
+            sendTeachScriptNotify(roomInfo.userIdArr,roomInfo.roomid,cmdArr)
+        }
     }else{
         //还未开始
         roomInfo.isStart = globelDate > roomInfo.startTimeInterval && teachScriptMap[roomInfo.teachingTmaterialScriptID];
-        console.log("课程未开始");
     }
+}
+
+function getScriptByRoom(rinfo){
+    var item =  teachScriptMap[rinfo.teachingTmaterialScriptID].stepData[rinfo.currentStepIdx];
+    rinfo.currentStepIdx += 1;
+    return item
+}
+
+function getCSByScript(sender,data){
+    return {"suid":sender,"st":globelDate,"data":data};
 }
 
 
@@ -362,7 +431,12 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
                 currentTimeInterval:0,/*用于进行各种时间比对及计算*/
                 startTimeInterval:0,/*课程开始时间beginTime*/
                 teachingTmaterialScriptID:scriptID,/*该教室的教材脚本地址*/
+                currentStepIdx:0,/*教学脚本执行进度*/
+                currentQuestionId:0,/*当前等待应答的问题的ID*/
+                allowNewScript:true,/*允许下发新的教学脚本*/
+                waitAnswerUids:[],/*等待做答的用户ID数组,它是一个触发器,当allowNewScript = false时，只有waitAnswerUids长度为0，才可以重置allowNewScript的状态为true*/
                 userArr:[],/*当前频道中的人的信息数组*/
+                userIdArr:[],/*用户ID数组*/
                 messageArr:[],/*文本消息记录最后10条*/
                 adminCMDArr:[],/*管理员命令集合*/
                 tongyongCMDArr:[]/*通用教学命令集合*/
@@ -403,6 +477,7 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
                 sock.rid = rid;
                 //加入到教室的用户列表
                 roominfo.userArr.push(user);
+                roominfo.userIdArr.push(uid);
                 //向请求端发送回执消息
                 resobj.code = 0;
                 resobj.fe = ""
@@ -426,6 +501,10 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
                 if(roominfo.adminCMDArr.length > 0)
                 {
                     adminCMDNotify([user.uid],rid,roominfo.adminCMDArr);
+                }
+                //向该用户推送正在执行的教学命令
+                if(roominfo.tongyongCMDArr > 0){
+                    sendTeachScriptNotify([user.uid],rid,roominfo.tongyongCMDArr)
                 }
 
     }
@@ -457,6 +536,7 @@ execFuncMap[0x00FF0016] = function(sid,dataObj){
             wantRemoveObj.type = 0;
             //从用户信息数组中移除
             userArr.splice(wangtI,1);
+            roominfo.userIdArr.splice(roominfo.userIdArr.indexOf(uid),1)
             //向其他用户发送用户变更通知
             userStatusChangeNotify(userIDArr,[wantRemoveObj]);
         }
@@ -533,8 +613,8 @@ function loadTeachingTmaterialScript(scriptId){
     options.path = "/" + scriptId + ".cof?randomValue=" + new Date().valueOf();
     
     var req = http.request(options, function (res) { 
-        console.log('STATUS: ' + res.statusCode); 
-        console.log('HEADERS: ' + JSON.stringify(res.headers)); 
+        // console.log('STATUS: ' + res.statusCode); 
+        // console.log('HEADERS: ' + JSON.stringify(res.headers)); 
         res.setEncoding('utf8'); 
         res.jsonStr = "";
         res.on('data', function (chunk) {
@@ -696,20 +776,20 @@ execFuncMap[0x00FF001C] = function(sid,dataObj){
     if(sock == null){
         return;
     }
+    var questionId = dataObj.id || -1;
+    questionId = parseInt(questionId);
     var rid = sock.rid || -1;
     var roominfo = roomMap[rid];
     if(roominfo){
-        //检查是否所有人都答题完毕
-        if(false){
-            //取出下一个教学脚本，下发给所有人
-            var resdata = {};
-            //从room信息中移除用户信息
-            var userArr = roominfo.userArr;
-
-            //下发下一个教学脚本
-            sendTeachScriptNotify(userIDArr,rid,[resdata]);
+        if(roominfo.currentQuestionId != questionId)
+            return;//如果学生上报的答案，不是当前的问题的答案，则不作数
+        var idx = roominfo.waitAnswerUids.indexOf(uid)
+        if(idx > -1){
+            //从等待答题的用户列表中移除改用户
+            roominfo.waitAnswerUids.splice(idx,1);
         }
-        
+        //通过判断是否所有的用户都已经答题完毕，来更新allowNewScript（“是否下发下一个教学脚本”）的状态
+        roominfo.allowNewScript = roominfo.waitAnswerUids.length == 0;
     }
 }
 
@@ -717,6 +797,8 @@ execFuncMap[0x00FF001C] = function(sid,dataObj){
  * 下发教学脚本
  * */
 function sendTeachScriptNotify(uidArr,rid,tongyongCMDArr){
+    console.log("下发教学命令:"+globelDate)
+    console.log(tongyongCMDArr)
     var notifyObj = {};
     notifyObj.cmd = 0x00FF001D;
     notifyObj.seq = 0;
