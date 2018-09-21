@@ -292,8 +292,14 @@ function updateRoomState(roomInfo){
             if(scriptItem.type == "changePage"){
                 roomInfo.tongyongCMDArr.splice(0,roomInfo.tongyongCMDArr.length)//移除之前的批处理教学命令缓存
                 roomInfo.tongyongCMDArr.push(clientScriptItem);//添加新的教学命令缓存
-            }else if(scriptItem.type == "onWall" || scriptItem.type == "delay"){
+            }else if(scriptItem.type == "onWall"){
                 roomInfo.tongyongCMDArr.push(clientScriptItem);//添加新的教学命令缓存
+            }else if(scriptItem.type == "delay"){
+                //延迟一定时间后，下发下一条命令
+                roomInfo.currentTimeInterval = scriptItem.value ? (scriptItem.value["timeLength"] ? parseInt(scriptItem.value["timeLength"]) : 0) : 0;
+                roomInfo.allowNewScript = false;
+                cmdArr.pop();//从下发命令集合中删除delay命令
+                break;
             }else{
                 switch(scriptItem.type){
                     case "templateCMD":
