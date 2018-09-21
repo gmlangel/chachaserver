@@ -395,6 +395,7 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
     uid = parseInt(uid);
     var sock = getSocketByUIDAndSID(sid,uid)
     if(sock){
+        sock.uid = uid;
         var user = {};
         user.uid = uid;
         user.nn = dataObj.nn || "";
@@ -451,6 +452,7 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
             var j = roominfo.userArr.length;
             var uidArr = [];
             var preId = -1;
+            console.log("userArr:"+j)
             for(var i = 0 ;i < j;i++){
                 if(roominfo.userArr[i].uid == user.uid){
                     var uidKey = roominfo.userArr[i].uid.toString();
@@ -503,7 +505,7 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
                     adminCMDNotify([user.uid],rid,roominfo.adminCMDArr);
                 }
                 //向该用户推送正在执行的教学命令
-                if(roominfo.tongyongCMDArr > 0){
+                if(roominfo.tongyongCMDArr.length > 0){
                     sendTeachScriptNotify([user.uid],rid,roominfo.tongyongCMDArr)
                 }
 
@@ -553,6 +555,7 @@ function closePreUserSocket(sid,uid){
     //对之前的用户发送掉线消息
     var preSock = ownedConnectUIDMap[uidKey];
 //设置移除结束后的处理函数的参数
+console.log("======>"+sid+""+uid);
                 preSock.endCompleteArgs = [{},sid,uid];
                 //设置移除结束后的处理函数
                 preSock.endCompleteFunc = function(obj,s_id,u_id){
@@ -563,7 +566,6 @@ function closePreUserSocket(sid,uid){
                     {
                         //添加到新
                         ownedConnect[sidKey] = unOwnedConnect[sidKey];
-                        ownedConnect[sidKey].uid = u_id;
                         //移除
                         unOwnedConnect[sidKey] = null;
                         delete unOwnedConnect[sidKey];
@@ -589,7 +591,6 @@ function newUserClientIn(sid,uid){
                 {
                     //添加到新
                     ownedConnect[sidKey] = unOwnedConnect[sidKey];
-                    ownedConnect[sidKey].uid = uid;
                     //移除
                     unOwnedConnect[sidKey] = null;
                     delete unOwnedConnect[sidKey];
