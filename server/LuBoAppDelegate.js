@@ -394,6 +394,40 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
     var uid = dataObj.uid || -1;
     uid = parseInt(uid);
     var sock = getSocketByUIDAndSID(sid,uid)
+    //如果现有链路中有UID与当前uid相同，且sid与当前sid不同的sock，则将其强制退出
+    var uidKey = uid.toString();
+    var presoc = ownedConnectUIDMap[uidKey];
+    if(presoc && presoc.sid != sid){
+        //将之前的用户踢出，使其socket断链,断开成功后，执行新的进入教室
+        closePreUserSocket(sid,uid,dataObj);
+    }else if(!presoc){
+        newUserClientIn(sid,uid);
+        //全新的用户进入教室
+        joinroom(sid,dataObj);
+    }else if(presoc && presoc.sid == sid){
+        //已经在教室的用户，又重新进入了教室
+        var rid = dataObj.rid || -1;
+        var roominfo = roomMap[rid];
+        if(roominfo)
+        {
+            //先调用离开教室
+            leaveRoom(sid,roominfo,uid);
+            //后调用进入教室
+            joinroom(sid,dataObj);
+        }
+        else
+            console.log("错误的流程，ownedConnectUIDMap有数据，roomMap不应该没数据");
+    }else{
+        console.log("错误的流程，不应该进入这个流程")
+    }
+}
+
+function joinroom(sid,dataObj){
+    var scriptID = dataObj["tts"];//该教室的教材脚本ID
+    var beginTime = dataObj["sti"];//课程开始时间
+    var uid = dataObj.uid || -1;
+    uid = parseInt(uid);
+    var sock = getSocketByUIDAndSID(sid,uid)
     if(sock){
         sock.uid = uid;
         var user = {};
@@ -426,7 +460,7 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
         if(roomMap[rid] == null){
             
             //如果教室不存在，则创建教室
-            var roomInfo = {
+            var newroomInfo = {
                 roomid:rid,/*id*/
                 isStart:false,/*是否已经开始*/
                 currentTimeInterval:0,/*用于进行各种时间比对及计算*/
@@ -442,7 +476,7 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
                 adminCMDArr:[],/*管理员命令集合*/
                 tongyongCMDArr:[]/*通用教学命令集合*/
             }
-            roomMap[rid] = roomInfo;
+            roomMap[rid] = newroomInfo;
             //加载教室教材脚本
             loadTeachingTmaterialScript(scriptID);
             //loadTeachingTmaterialScript(scriptID + 1);
@@ -451,29 +485,14 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
         var roominfo = roomMap[rid];
             var j = roominfo.userArr.length;
             var uidArr = [];
-            var preId = -1;
             console.log("userArr:"+j)
             for(var i = 0 ;i < j;i++){
                 if(roominfo.userArr[i].uid == user.uid){
-                    var uidKey = roominfo.userArr[i].uid.toString();
-                    var presoc = ownedConnectUIDMap[uidKey];
-                    if(presoc && presoc == sock){
-                        //当前在教室的socket链接，与要进入教室的socket链接相同，证明是客户端逻辑的误操作（连续N次进入教室，未调用leaveroom）
-                    }else{
-                        //教室内存在重复的用户
-                        preId = user.uid;
-                    }
+
                 }else{
                     //将用户ID记录到集合,用于发送 用户状态变更通知
                     uidArr.push(roominfo.userArr[i].uid);
                 }
-            }
-            if(preId == -1){
-                //新用户接入
-                newUserClientIn(sid,uid);
-            }else{
-                //将之前的用户踢出，使其socket断链
-                closePreUserSocket(sid,uid);
             }
             //将rid绑定到socket链接上
                 sock.rid = rid;
@@ -518,6 +537,10 @@ execFuncMap[0x00FF0016] = function(sid,dataObj){
     uid = parseInt(uid);
     var rid = dataObj.rid || -1;
     var roominfo = roomMap[rid];
+    leaveRoom(sid,roominfo,uid)
+}
+
+function leaveRoom(sid,roominfo,uid){
     if(roominfo){
         //从room信息中移除用户信息
         var userArr = roominfo.userArr;
@@ -550,15 +573,15 @@ execFuncMap[0x00FF0016] = function(sid,dataObj){
     }
 }
 
-function closePreUserSocket(sid,uid){
+function closePreUserSocket(sid,uid,dataObj){
     var uidKey = uid.toString();
     //对之前的用户发送掉线消息
     var preSock = ownedConnectUIDMap[uidKey];
 //设置移除结束后的处理函数的参数
 console.log("======>"+sid+""+uid);
-                preSock.endCompleteArgs = [{},sid,uid];
+                preSock.endCompleteArgs = [{},sid,uid,dataObj];
                 //设置移除结束后的处理函数
-                preSock.endCompleteFunc = function(obj,s_id,u_id){
+                preSock.endCompleteFunc = function(obj,s_id,u_id,newDataObj){
                     var sidKey = s_id.toString();
                     //向当前的socket链接发送用户登录成功消息
                     //将socket链接从unOwnedConnect移动到ownedConnect中
@@ -574,6 +597,8 @@ console.log("======>"+sid+""+uid);
                     }else{
                         console.log("逻辑错误，不应该进入这个环节");
                     }
+                    //让新的用户进入教室
+                    joinroom(s_id,newDataObj)
                 }
                 //结束socket,并发送掉线通知
                 preSock.end(JSON.stringify({"cmd":0x00FF0007,"seq":(seq + 1),"code":259,"reason":"其它端登录,您已经被踢"}));                
@@ -808,9 +833,12 @@ function sendTeachScriptNotify(uidArr,rid,tongyongCMDArr){
     notifyObj.datas = tongyongCMDArr;
     var notifyStr = JSON.stringify(notifyObj);
     var j = uidArr.length;
+
     for(var i=0;i<j;i++){
+
         var uid = uidArr[i];
         var sock = getSocketByUIDAndSID(-1,uid);
+        console.log("ceshi===>"+uidArr.length+","+uidArr[i]+","+sock)
         if(sock){
             sock.write(notifyStr);
         }
