@@ -274,7 +274,9 @@ function getSocketByUIDAndSID(sid,uid){
 轮询计算并更新教室状态
 */
 function updateRoomState(roomInfo){
-    if(roomInfo.isStart){
+    if(roomInfo.roomState == "end")
+        return;
+    if(roomInfo.roomState == "started"){
         //已经开始且教材脚本已经加载完毕
         //console.log("开始，开始，开始");
         roomInfo.currentTimeInterval -= updateOffset;//更新时间计时器
@@ -300,6 +302,10 @@ function updateRoomState(roomInfo){
                 roomInfo.allowNewScript = false;
                 cmdArr.pop();//从下发命令集合中删除delay命令
                 break;
+            }else if(scriptItem.type == "classEnd"){
+                roomInfo.tongyongCMDArr.splice(1,roomInfo.tongyongCMDArr.length - 1)//除第一条换页命令外，移除其余的命令
+                roomInfo.tongyongCMDArr.push(clientScriptItem);//添加新的教学命令缓存
+                roomInfo.roomState = "end";
             }else{
                 switch(scriptItem.type){
                     case "templateCMD":
@@ -343,7 +349,7 @@ function updateRoomState(roomInfo){
         }
     }else{
         //还未开始
-        roomInfo.isStart = globelDate > roomInfo.startTimeInterval && teachScriptMap[roomInfo.teachingTmaterialScriptID];
+        roomInfo.roomState = (globelDate > roomInfo.startTimeInterval && teachScriptMap[roomInfo.teachingTmaterialScriptID]) ? "started" : roomInfo.roomState;
     }
 }
 
@@ -468,7 +474,7 @@ function joinroom(sid,dataObj){
             //如果教室不存在，则创建教室
             var newroomInfo = {
                 roomid:rid,/*id*/
-                isStart:false,/*是否已经开始*/
+                roomState:"nostart",/*课程状态nostart started end*/
                 currentTimeInterval:0,/*用于进行各种时间比对及计算*/
                 startTimeInterval:0,/*课程开始时间beginTime*/
                 teachingTmaterialScriptID:scriptID,/*该教室的教材脚本地址*/
@@ -653,6 +659,9 @@ function loadTeachingTmaterialScript(scriptId){
             res.jsonStr += chunk;
             try{
                 var obj = JSON.parse(res.jsonStr);
+                //向原有教学命令中，添加课程结束命令
+                obj.stepData = obj.stepData || [];
+                obj.stepData.push({"id":0,"type":"classEnd","value":{}});
                 teachScriptMap[obj.courseId] = obj;//存储加载后的脚本
             }catch(errSub){
                 //console.log("=====>" + res.jsonStr)
@@ -848,6 +857,33 @@ function sendTeachScriptNotify(uidArr,rid,tongyongCMDArr){
         if(sock){
             sock.write(notifyStr);
         }
+    }
+}
+
+//客户端请求 课程学习报告
+execFuncMap[0x00FF001E] = function(sid,dataObj){
+    var uid = dataObj.uid || -1;
+    uid = parseInt(uid);
+    var rid = dataObj.rid || -1;
+    var roominfo = roomMap[rid];
+    if(roominfo){
+        //向用户发送，用户课程报告
+        sendLessonResultToUser(rid,uid,[]);
+    }
+}
+
+//向客户端返回报告
+function sendLessonResultToUser(rid,uid,datas){
+    var notifyObj = {};
+    notifyObj.cmd = 0x00FF001F;
+    notifyObj.seq = 0;
+    notifyObj.code = 0;
+    notifyObj.rid = rid;
+    notifyObj.datas = datas;
+    var sock = getSocketByUIDAndSID(-1,uid);
+    var notifyStr = JSON.stringify(notifyObj);
+    if(sock){
+        sock.write(notifyStr);
     }
 }
 
