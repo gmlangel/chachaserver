@@ -279,9 +279,12 @@ function updateRoomState(roomInfo){
     if(roomInfo.roomState == "started"){
         //已经开始且教材脚本已经加载完毕
         //console.log("开始，开始，开始");
-        roomInfo.currentTimeInterval -= updateOffset;//更新时间计时器
-        if(roomInfo.currentTimeInterval <= 0)
+        roomInfo.currentTimeInterval += updateOffset;//更新时间计时器
+        if(roomInfo.currentTimeInterval >= roomInfo.completeTime)
+        {
+            roomInfo.currentTimeInterval = 0;
             roomInfo.allowNewScript = true;//已经达到超时时间，为了不影响之后的脚本运行，则应该直接执行下个脚本
+        }
         if(roomInfo.allowNewScript == false)
             return;
         var cmdArr = [];
@@ -298,7 +301,7 @@ function updateRoomState(roomInfo){
                 roomInfo.tongyongCMDArr.push(clientScriptItem);//添加新的教学命令缓存
             }else if(scriptItem.type == "delay"){
                 //延迟一定时间后，下发下一条命令
-                roomInfo.currentTimeInterval = scriptItem.value ? (scriptItem.value["timeLength"] ? parseInt(scriptItem.value["timeLength"]) : 0) : 0;
+                roomInfo.completeTime = scriptItem.value ? (scriptItem.value["timeLength"] ? parseInt(scriptItem.value["timeLength"]) : 0) : 0;
                 roomInfo.allowNewScript = false;
                 cmdArr.pop();//从下发命令集合中删除delay命令
                 break;
@@ -313,29 +316,29 @@ function updateRoomState(roomInfo){
                         //设置超时等待时间和等待回答响应的用户数组
                         if(scriptItem.value)
                         {
-                            roomInfo.currentTimeInterval = scriptItem.value.timeout || 30;
+                            roomInfo.completeTime = scriptItem.value.timeout || 30;
                         }   
                         else
-                            roomInfo.currentTimeInterval = 30;
+                            roomInfo.completeTime = 30;
                         break;
                     case "video":
                         roomInfo.waitAnswerUids = roomInfo.userIdArr.concat();//需要所有人应答
                         //设置超时等待时间
                         if(scriptItem.value)
-                            roomInfo.currentTimeInterval = (scriptItem.value.endSecond || 1) - (scriptItem.value.beginSecond || 1) + 5
+                            roomInfo.completeTime = (scriptItem.value.endSecond || 1) - (scriptItem.value.beginSecond || 1) + 5
                         else
-                            roomInfo.currentTimeInterval = 5;
+                            roomInfo.completeTime = 5;
                         break;
                     case "audio":
                         roomInfo.waitAnswerUids = roomInfo.userIdArr.concat();//需要所有人应答
                         //设置超时等待时间
                         if(scriptItem.value)
-                            roomInfo.currentTimeInterval = (scriptItem.value.endSecond || 1) - (scriptItem.value.beginSecond || 1) + 5
+                            roomInfo.completeTime = (scriptItem.value.endSecond || 1) - (scriptItem.value.beginSecond || 1) + 5
                         else
-                            roomInfo.currentTimeInterval = 5;
+                            roomInfo.completeTime = 5;
                         break;
                     default:
-                        console.log("不应该进入这个流程,roomInfo.currentTimeInterval 和 roomInfo.allowNewScript 必须同时设置")
+                        console.log("不应该进入这个流程,roomInfo.completeTime 和 roomInfo.allowNewScript 必须同时设置")
                         break;
                 }
                 roomInfo.currentQuestionId = scriptItem.id;//设置当前正在提问的问题ID
@@ -345,7 +348,7 @@ function updateRoomState(roomInfo){
             }
         }
         if(cmdArr.length > 0){
-            sendTeachScriptNotify(roomInfo.userIdArr,roomInfo.roomid,cmdArr)
+            sendTeachScriptNotify(roomInfo.userIdArr,roomInfo.roomid,cmdArr,roomInfo.currentTimeInterval)
         }
     }else{
         //还未开始
@@ -476,6 +479,7 @@ function joinroom(sid,dataObj){
                 roomid:rid,/*id*/
                 roomState:"nostart",/*课程状态nostart started end*/
                 currentTimeInterval:0,/*用于进行各种时间比对及计算*/
+                completeTime:0,/*用于与currentTimeInterval进行各种时间比对及计算*/
                 startTimeInterval:0,/*课程开始时间beginTime*/
                 teachingTmaterialScriptID:scriptID,/*该教室的教材脚本地址*/
                 currentStepIdx:0,/*教学脚本执行进度*/
@@ -537,7 +541,7 @@ function joinroom(sid,dataObj){
                 }
                 //向该用户推送正在执行的教学命令
                 if(roominfo.tongyongCMDArr.length > 0){
-                    sendTeachScriptNotify([user.uid],rid,roominfo.tongyongCMDArr)
+                    sendTeachScriptNotify([user.uid],rid,roominfo.tongyongCMDArr,roominfo.currentTimeInterval)
                 }
 
     }
@@ -837,7 +841,7 @@ execFuncMap[0x00FF001C] = function(sid,dataObj){
 /**
  * 下发教学脚本
  * */
-function sendTeachScriptNotify(uidArr,rid,tongyongCMDArr){
+function sendTeachScriptNotify(uidArr,rid,tongyongCMDArr,playTimeInterval){
     console.log("下发教学命令:"+globelDate)
     console.log(tongyongCMDArr)
     var notifyObj = {};
@@ -846,6 +850,7 @@ function sendTeachScriptNotify(uidArr,rid,tongyongCMDArr){
     notifyObj.code = 0;
     notifyObj.rid = rid;
     notifyObj.datas = tongyongCMDArr;
+    notifyObj.playTimeInterval = playTimeInterval;//命令执行的剩余时间 秒数
     var notifyStr = JSON.stringify(notifyObj);
     var j = uidArr.length;
 

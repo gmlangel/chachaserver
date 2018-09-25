@@ -1,5 +1,7 @@
 {
 	"courseId":791191,
+	"width":1280,
+	"height":720,
 	"resource":{
 		"good":{"type":"mp3","path":"good.m4a"},
 		"keepItUp":{"type":"mp3","path":"keepItUp.m4a"},
