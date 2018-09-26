@@ -291,6 +291,7 @@ function updateRoomState(roomInfo){
         var j = teachScriptMap[roomInfo.teachingTmaterialScriptID].stepData.length;
         while(roomInfo.currentStepIdx < j){
             var scriptItem = getScriptByRoom(roomInfo)
+            roomInfo.currentQuestionId = scriptItem.id;//设置当前正在提问的问题ID
             var clientScriptItem = getCSByScript(0,scriptItem);//将服务端脚本转换为客户端可以执行的脚本命令
             cmdArr.push(clientScriptItem)
             //除了换页、延迟和上墙命令外，其它的命令都需要客户端做出响应后才能继续执行
@@ -341,7 +342,6 @@ function updateRoomState(roomInfo){
                         console.log("不应该进入这个流程,roomInfo.completeTime 和 roomInfo.allowNewScript 必须同时设置")
                         break;
                 }
-                roomInfo.currentQuestionId = scriptItem.id;//设置当前正在提问的问题ID
                 roomInfo.tongyongCMDArr.push(clientScriptItem)
                 roomInfo.allowNewScript = false;
                 break;
@@ -483,7 +483,7 @@ function joinroom(sid,dataObj){
                 startTimeInterval:0,/*课程开始时间beginTime*/
                 teachingTmaterialScriptID:scriptID,/*该教室的教材脚本地址*/
                 currentStepIdx:0,/*教学脚本执行进度*/
-                currentQuestionId:0,/*当前等待应答的问题的ID*/
+                currentQuestionId:-1,/*当前等待应答的问题的ID*/
                 allowNewScript:true,/*允许下发新的教学脚本*/
                 waitAnswerUids:[],/*等待做答的用户ID数组,它是一个触发器,当allowNewScript = false时，只有waitAnswerUids长度为0，才可以重置allowNewScript的状态为true*/
                 userArr:[],/*当前频道中的人的信息数组*/
