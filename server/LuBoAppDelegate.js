@@ -10,7 +10,7 @@ var querystring = require('querystring');
 
 //对象以及属性声明----------------------------------------------------------------------------------------------------------
 var mainServer = null;//主服务器
-var mainServerPort = 48888;
+var mainServerPort = 59999;
 var connectIdOffset = 0;//客户端连接的ID ,用于生成 '客户端连接ID池';
 var connectIdPool = [];//客户端连接ID池
 var unOwnedConnect = {};//无主连接字典.用于记录未进入教室的用户的socket链接 {sid:socket}
@@ -552,7 +552,9 @@ function joinroom(sid,dataObj){
                 }
                 //如果教材脚本加载完毕，则下推教材脚本
                 if(teachScriptMap[roominfo.teachingTmaterialScriptID]){
-                    pushTeachingTmaterialScriptLoadEndNotify([user.uid],teachScriptMap[roominfo.teachingTmaterialScriptID]);
+                    
+                    var teaObj = {"courseId":teachScriptMap[roominfo.teachingTmaterialScriptID].courseId,"resource":teachScriptMap[roominfo.teachingTmaterialScriptID].resource}
+                    pushTeachingTmaterialScriptLoadEndNotify([user.uid],teaObj);
                 }
 
     }
@@ -680,7 +682,7 @@ function loadTeachingTmaterialScript(scriptId){
                 teachScriptMap[obj.courseId] = obj;//存储加载后的脚本
                 for(var roomKey in roomMap){
                     if(roomMap[roomKey].teachingTmaterialScriptID == obj.courseId){
-                        pushTeachingTmaterialScriptLoadEndNotify(roomMap[roomKey]["userIdArr"],obj);//下推 教材脚本加载完毕通知
+                        pushTeachingTmaterialScriptLoadEndNotify(roomMap[roomKey]["userIdArr"],{"courseId":obj.courseId,"resource":obj.resource});//下推 教材脚本加载完毕通知
                     }
                 }
             }catch(errSub){
