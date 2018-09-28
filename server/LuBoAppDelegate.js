@@ -852,7 +852,7 @@ execFuncMap[0x00FF001C] = function(sid,dataObj){
                 roominfo.completeTime = roominfo.currentTimeInterval + 5;//每一个用户提交答案后进行判断，脚本执行时间不足5秒的，补充至5秒
             }
             //记录用户相关的课程报告
-            lessonResultMap[uid + "_" + rid].push(dataObj);
+            lessonResultMap[uid + "_" + rid].push({"id":questionId,"data":dataObj.data});
         }
         //通过判断是否所有的用户都已经答题完毕，5秒后更新allowNewScript（“是否下发下一个教学脚本”）的状态，  5秒的时间是留给客户端播放奖励声音和动画
         if(roominfo.waitAnswerUids.length == 0){
