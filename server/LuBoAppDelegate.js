@@ -543,6 +543,10 @@ function joinroom(sid,dataObj){
                 if(roominfo.tongyongCMDArr.length > 0){
                     sendTeachScriptNotify([user.uid],rid,roominfo.tongyongCMDArr,roominfo.currentTimeInterval)
                 }
+                //如果教材脚本加载完毕，则下推教材脚本
+                if(teachScriptMap[roominfo.teachingTmaterialScriptID]){
+                    pushTeachingTmaterialScriptLoadEndNotify([user.uid],teachScriptMap[roominfo.teachingTmaterialScriptID]);
+                }
 
     }
 }
@@ -667,6 +671,11 @@ function loadTeachingTmaterialScript(scriptId){
                 obj.stepData = obj.stepData || [];
                 obj.stepData.push({"id":0,"type":"classEnd","value":{}});
                 teachScriptMap[obj.courseId] = obj;//存储加载后的脚本
+                for(var roomKey in roomMap){
+                    if(roomMap[roomKey].teachingTmaterialScriptID == obj.courseId){
+                        pushTeachingTmaterialScriptLoadEndNotify(roomMap[roomKey]["userIdArr"],obj);//下推 教材脚本加载完毕通知
+                    }
+                }
             }catch(errSub){
                 //console.log("=====>" + res.jsonStr)
             }
@@ -832,9 +841,14 @@ execFuncMap[0x00FF001C] = function(sid,dataObj){
         if(idx > -1){
             //从等待答题的用户列表中移除改用户
             roominfo.waitAnswerUids.splice(idx,1);
+            if(roominfo.completeTime - roominfo.currentTimeInterval < 5){
+                roominfo.completeTime = roominfo.currentTimeInterval + 5;//每一个用户提交答案后进行判断，脚本执行时间不足5秒的，补充至5秒
+            }
         }
-        //通过判断是否所有的用户都已经答题完毕，来更新allowNewScript（“是否下发下一个教学脚本”）的状态
-        roominfo.allowNewScript = roominfo.waitAnswerUids.length == 0;
+        //通过判断是否所有的用户都已经答题完毕，5秒后更新allowNewScript（“是否下发下一个教学脚本”）的状态，  5秒的时间是留给客户端播放奖励声音和动画
+        if(roominfo.waitAnswerUids.length == 0){
+            roominfo.completeTime = roominfo.currentTimeInterval + 5;
+        }
     }
 }
 
@@ -891,6 +905,26 @@ function sendLessonResultToUser(rid,uid,datas){
         sock.write(notifyStr);
     }
 }
+
+/**
+下推 教材脚本加载完毕通知
+*/
+function pushTeachingTmaterialScriptLoadEndNotify(uidArr,obj){
+        var j = uidArr.length;
+        var resObj = {};
+        resObj.cmd = 0x00FF0020;
+        resObj.code = 0;
+        resObj.scriptConfigData = obj;
+        var resString = JSON.stringify(resObj);
+        for(var i = 0 ;i<j;i++){
+            var uid = uidArr[i];
+            var sock = getSocketByUIDAndSID(-1,uid);
+            if(sock){
+                sock.write(resString);
+            }
+        }
+}
+
 
 // //更新用户状态
 // execFuncMap[0x00FF001E] = function(sid,dataObj){
