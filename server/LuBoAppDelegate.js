@@ -18,6 +18,7 @@ var ownedConnect = {};//有主连接字典{sid:socket}
 var ownedConnectUIDMap = {};//有主连接字典{uid:socket}
 var execFuncMap = {};//数据包处理函数的字典
 
+
 //老师权限
 var teaRole = {
     "canSendcmd":1
@@ -34,7 +35,7 @@ var roleMap = {
 
 var roomMap = {};//教室字典
 var teachScriptMap = {};//教学脚本字典
-
+var lessonResultMap = {};//课程报告集合
 
 //0x00ff0000 socket接入成功
 //0x00FF0001 c2s心跳
@@ -510,6 +511,12 @@ function joinroom(sid,dataObj){
                     uidArr.push(roominfo.userArr[i].uid);
                 }
             }
+
+            //初始化用户相关的课程报告集合
+            if(!lessonResultMap[uid + "_" + rid]){
+                lessonResultMap[uid + "_" + rid] = []
+            }
+
             //将rid绑定到socket链接上
                 sock.rid = rid;
                 //加入到教室的用户列表
@@ -844,6 +851,8 @@ execFuncMap[0x00FF001C] = function(sid,dataObj){
             if(roominfo.completeTime - roominfo.currentTimeInterval < 5){
                 roominfo.completeTime = roominfo.currentTimeInterval + 5;//每一个用户提交答案后进行判断，脚本执行时间不足5秒的，补充至5秒
             }
+            //记录用户相关的课程报告
+            lessonResultMap[uid + "_" + rid].push(dataObj);
         }
         //通过判断是否所有的用户都已经答题完毕，5秒后更新allowNewScript（“是否下发下一个教学脚本”）的状态，  5秒的时间是留给客户端播放奖励声音和动画
         if(roominfo.waitAnswerUids.length == 0){
@@ -886,8 +895,12 @@ execFuncMap[0x00FF001E] = function(sid,dataObj){
     var rid = dataObj.rid || -1;
     var roominfo = roomMap[rid];
     if(roominfo){
-        //向用户发送，用户课程报告
-        sendLessonResultToUser(rid,uid,[]);
+        var arr = lessonResultMap[uid + "_" + rid];
+        if(arr)
+        {
+            //向用户发送，用户课程报告
+            sendLessonResultToUser(rid,uid,arr);
+        }
     }
 }
 
