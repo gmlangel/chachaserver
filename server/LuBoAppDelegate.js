@@ -17,7 +17,7 @@ var unOwnedConnect = {};//无主连接字典.用于记录未进入教室的用�
 var ownedConnect = {};//有主连接字典{sid:socket}
 var ownedConnectUIDMap = {};//有主连接字典{uid:socket}
 var execFuncMap = {};//数据包处理函数的字典
-
+var packageSize = 500;//拆包大小
 
 //老师权限
 var teaRole = {
@@ -311,6 +311,9 @@ function updateRoomState(roomInfo){
                 roomInfo.tongyongCMDArr.splice(1,roomInfo.tongyongCMDArr.length - 1)//除第一条换页命令外，移除其余的命令
                 roomInfo.tongyongCMDArr.push(clientScriptItem);//添加新的教学命令缓存
                 roomInfo.roomState = "end";
+                //测试用,重置教室，让教室可以重复利用
+                roomMap[roomInfo.roomid] = null;
+                delete roomMap[roomInfo.roomid];
             }else{
                 switch(scriptItem.type){
                     case "templateCMD":
@@ -375,7 +378,7 @@ execFuncMap[0x00FF0001] = function(sid,dataObj){
     var sock = getSocketByUIDAndSID(sid,-1);
     //心跳服务 s_to_c
     if(sock){
-        sock.write(JSON.stringify({cmd:0x00FF0002,seq:seq + 1,c_seq:seq,st:parseInt(new Date().valueOf() / 1000)}));
+        writeSock(sock,JSON.stringify({cmd:0x00FF0002,seq:seq + 1,c_seq:seq,st:parseInt(new Date().valueOf() / 1000)}));
     }
 }
 
@@ -431,8 +434,9 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
             //后调用进入教室
             joinroom(sid,dataObj);
         }
-        else
-            console.log("错误的流程，ownedConnectUIDMap有数据，roomMap不应该没数据");
+        else{
+            joinroom(sid,dataObj);
+        }
     }else{
         console.log("错误的流程，不应该进入这个流程")
     }
@@ -462,7 +466,7 @@ function joinroom(sid,dataObj){
             resobj.code = 262;
             resobj.fe = "进入room失败,uid无效"
             //向请求端发送回执消息
-            sock.write(JSON.stringify(resobj));
+            writeSock(sock,JSON.stringify(resobj));
             return;
         }
         var rid = dataObj.rid || -1;
@@ -470,7 +474,7 @@ function joinroom(sid,dataObj){
             resobj.code = 263;
             resobj.fe = "进入room失败,roomId小于0,无效"
             //向请求端发送回执消息
-            sock.write(JSON.stringify(resobj));
+            writeSock(sock,JSON.stringify(resobj));
             return;
         }
         if(roomMap[rid] == null){
@@ -527,7 +531,7 @@ function joinroom(sid,dataObj){
                 resobj.fe = ""
                 resobj.rid = roominfo.roomid;
                 resobj.ua = roominfo.userArr;
-                sock.write(JSON.stringify(resobj));
+                writeSock(sock,JSON.stringify(resobj));
                 //向教室内的其它用户发送 用户状态变更通知
                 var notifyUser = {};
                 notifyUser.uid = user.uid;
@@ -716,7 +720,7 @@ function userStatusChangeNotify(uidArr,changedUserInfoArr){
         var uid = uidArr[i];
         var sock = getSocketByUIDAndSID(-1,uid);
         if(sock){
-            sock.write(resString);
+            writeSock(sock,resString);
         }
     }
 }
@@ -773,7 +777,7 @@ function chatMSGNotify(uidArr,rid,msgArr){
         var uid = uidArr[i];
         var sock = getSocketByUIDAndSID(-1,uid);
         if(sock){
-            sock.write(notifyStr);
+            writeSock(sock,notifyStr);
         }
     }
 }
@@ -826,7 +830,7 @@ function adminCMDNotify(uidArr,rid,adminCMDArr){
         var uid = uidArr[i];
         var sock = getSocketByUIDAndSID(-1,uid);
         if(sock){
-            sock.write(notifyStr);
+            writeSock(sock,notifyStr);
         }
     }
 }
@@ -885,7 +889,7 @@ function sendTeachScriptNotify(uidArr,rid,tongyongCMDArr,playTimeInterval){
         var sock = getSocketByUIDAndSID(-1,uid);
         console.log("ceshi===>"+uidArr.length+","+uidArr[i]+","+sock)
         if(sock){
-            sock.write(notifyStr);
+            writeSock(sock,notifyStr);
         }
     }
 }
@@ -917,7 +921,7 @@ function sendLessonResultToUser(rid,uid,datas){
     var sock = getSocketByUIDAndSID(-1,uid);
     var notifyStr = JSON.stringify(notifyObj);
     if(sock){
-        sock.write(notifyStr);
+        writeSock(sock,notifyStr);
     }
 }
 
@@ -935,9 +939,24 @@ function pushTeachingTmaterialScriptLoadEndNotify(uidArr,obj){
             var uid = uidArr[i];
             var sock = getSocketByUIDAndSID(-1,uid);
             if(sock){
-                sock.write(resString);
+                writeSock(sock,resString);
             }
         }
+}
+
+/**
+sock  拆包发送
+*/
+function writeSock(sock,str){
+    var waitSendStr = "<gmlb>" + str + "<gmle>";
+    var result = "";
+    //拆包发送，  如果要发送的内容长度大于500 则拆成N个包，发送
+    while(waitSendStr.length > packageSize){
+        result = waitSendStr.substring(0,packageSize);
+        sock.write(result);
+        waitSendStr = waitSendStr.substring(packageSize,waitSendStr.length);
+    }
+    sock.write(waitSendStr);
 }
 
 
