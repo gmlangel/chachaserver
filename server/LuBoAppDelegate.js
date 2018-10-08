@@ -330,7 +330,7 @@ function updateRoomState(roomInfo){
                         roomInfo.waitAnswerUids = roomInfo.userIdArr.concat();//需要所有人应答
                         //设置超时等待时间
                         if(scriptItem.value)
-                            roomInfo.completeTime = (scriptItem.value.endSecond || 1) - (scriptItem.value.beginSecond || 1) + 5
+                            roomInfo.completeTime = (scriptItem.value.endSecond || 1) - (scriptItem.value.beginSecond || 1) + 3
                         else
                             roomInfo.completeTime = 5;
                         break;
@@ -338,7 +338,7 @@ function updateRoomState(roomInfo){
                         roomInfo.waitAnswerUids = roomInfo.userIdArr.concat();//需要所有人应答
                         //设置超时等待时间
                         if(scriptItem.value)
-                            roomInfo.completeTime = (scriptItem.value.endSecond || 1) - (scriptItem.value.beginSecond || 1) + 5
+                            roomInfo.completeTime = (scriptItem.value.endSecond || 1) - (scriptItem.value.beginSecond || 1) + 3
                         else
                             roomInfo.completeTime = 5;
                         break;
