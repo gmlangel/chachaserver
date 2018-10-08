@@ -35,6 +35,30 @@ var roleMap = {
 }
 //设置用户信息表{loginName:UserInfoObj}
 var userInfoMap = {
+    "Julia":{
+        "nickName":"Julia",
+                "headerImage":"",
+                "sex":0,
+                "uid":100,
+                "loginName":"Julia",
+                "resourcePath":""
+            },
+    "test1":{
+        "nickName":"Test1",
+                "headerImage":"",
+                "sex":1,
+                "uid":101,
+                "loginName":"test1",
+                "resourcePath":""
+    },
+    "test2":{
+        "nickName":"Test2",
+                "headerImage":"",
+                "sex":0,
+                "uid":102,
+                "loginName":"test2",
+                "resourcePath":""
+    }
 }
 
 /**
@@ -55,16 +79,33 @@ var roomIdOffset = 0;
 var roomMap = {}
 roomMap[1] ={
         roomid:1,/*id*/
-        roomName:"ceshi",/*room名称*/
+        roomName:"班课_low",/*room名称*/
         roomImage:"",/*room图标*/
         createTime:0,/*创建时间*/
-        token:"testchanel",/*频道邀请码*/
-        owneerUID:0,/*创建频道的人的ID*/
+        token:"testchanel_1",/*频道邀请码*/
+        owneerUID:100,/*创建频道的人的ID*/
         userArr:[],/*当前频道中的人的信息数组*/
+        userIdArr:[],/*用户ID数组*/
         messageArr:[],/*文本消息记录最后10条*/
         adminCMDArr:[],/*管理员命令集合*/
         tongyongCMDArr:[]/*通用教学命令集合*/
     }
+
+roomMap[2]={
+        roomid:2,/*id*/
+        roomName:"班课_High",/*room名称*/
+        roomImage:"",/*room图标*/
+        createTime:0,/*创建时间*/
+        token:"testchanel_2",/*频道邀请码*/
+        owneerUID:100,/*创建频道的人的ID*/
+        userArr:[],/*当前频道中的人的信息数组*/
+        userIdArr:[],/*用户ID数组*/
+        messageArr:[],/*文本消息记录最后10条*/
+        adminCMDArr:[],/*管理员命令集合*/
+        tongyongCMDArr:[]/*通用教学命令集合*/
+    }
+
+var socketDataMap = {};//用于对客户端发来的数据进行拆包的字典
 //函数声明---------------------------------------------------------------------------------------------------------------
 //主函数
 function start(){
@@ -73,6 +114,7 @@ function start(){
     mainServer.on('connection', function (newConnectIns) {
         console.log('client connected');
         newConnectIns.sid = createConnectId();//为socket链接设置ID;
+        socketDataMap[newConnectIns.sid] = "";//创建一个用于存储该链接发来的数据的集合
         console.log("新链接接入,socAddress:"+newConnectIns._socket.remoteAddress + " socPort:" + newConnectIns._socket.remotePort," sid:" + newConnectIns.sid)
         newConnectIns.uid = -1;//为其设置一个默认的uid
         //暂时不用newConnectIns.setTimeout(60000);//设置socket超时时间为60秒
@@ -149,14 +191,34 @@ function createConnectId(){
 function analyzeDataPackage(sid,dataBuffer){
     try{
         var dataStr = dataBuffer.toString();
-        var obj = JSON.parse(dataStr);
-        var cmd = obj["cmd"] || 0;
-        cmd = parseInt(cmd);
-        //console.log("收到数据包",cmd.toString(16))
-        //如果存在处理函数,则进行处理
-        if(execFuncMap.hasOwnProperty(cmd) && typeof(execFuncMap[cmd]) == 'function'){
-            execFuncMap[cmd](sid,obj);
+        socketDataMap[sid] = socketDataMap[sid] + dataStr;
+        var tempStr = socketDataMap[sid];
+        var pkgHeadIdx = tempStr.indexOf("<gmlb>");//取包头
+        var pkgEndIdx = tempStr.indexOf("<gmle>");//取包尾
+        var waitJSONStr = "";
+        while(pkgHeadIdx > 0 && pkgEndIdx > 0){
+            if(pkgEndIdx > pkgHeadIdx){
+                //可以读出一个数据包
+                waitJSONStr = tempStr.substring(pkgHeadIdx + 6,pkgEndIdx);
+                //清空pkgEndIdx以前的所有数据
+                tempStr = tempStr.substring(pkgEndIdx+6,tempStr.length);
+                var obj = JSON.parse(waitJSONStr);
+                var cmd = obj["cmd"] || 0;
+                cmd = parseInt(cmd);
+                //console.log("收到数据包",cmd.toString(16))
+                //如果存在处理函数,则进行处理
+                if(execFuncMap.hasOwnProperty(cmd) && typeof(execFuncMap[cmd]) == 'function'){
+                    execFuncMap[cmd](sid,obj);
+                }
+            }else{
+                //清空pkgHeadIdx以前的所有数据
+                tempStr = tempStr.substring(pkgHeadIdx,tempStr.length);
+            }
+            socketDataMap[sid] = tempStr;
+            pkgHeadIdx = tempStr.indexOf("<gmlb>");//重新取包头
+            pkgEndIdx = tempStr.indexOf("<gmle>");//重新取包尾
         }
+        
     }catch(err){
         console.log(err);
         console.log("数据包不是JSON字符串",dataStr);
@@ -171,9 +233,9 @@ function analyzeDataPackage(sid,dataBuffer){
 function destroySocket(soc){
     var sidKey = soc.sid.toString();
     var uidKey = soc.uid.toString();
-    var nnKey = soc.nn || "";
     var sid = soc.sid;
     var uid = soc.uid;
+    socketDataMap[sid] = "";
     try{
         if(unOwnedConnect.hasOwnProperty(sidKey)){
             unOwnedConnect[sidKey] = null;
@@ -201,29 +263,22 @@ function destroySocket(soc){
         var j = userArr.length;
         var wantRemoveObj = null;
         var wangtI = -1;
-        var userIDArr = [];
         for(var i = 0 ;i<j; i++){
             if(userArr[i].uid == uid){
                 wantRemoveObj = userArr[i];
                 wangtI = i;
-            }else{
-                //填充被推送用户的ID数组
-                userIDArr.push(userArr[i].uid);
+                break;
             }
         }
         if(wantRemoveObj){
             wantRemoveObj.type = 0;
             //从用户信息数组中移除
             userArr.splice(wangtI,1);
+            roomInfo.userIdArr.splice(roomInfo.userIdArr.indexOf(uid),1);
             //向其他用户发送用户变更通知
-            userStatusChangeNotify(userIDArr,[wantRemoveObj]);
+            userStatusChangeNotify(roomInfo.userIdArr,[wantRemoveObj]);
         }
     }
-    if(nnKey != ""){
-        delete userInfoMap[nnKey];
-    }
-    
-
 }
 
 /**
@@ -238,22 +293,15 @@ function getSocketByUIDAndSID(sid,uid){
     var uidKey = uid.toString();
     if(unOwnedConnect.hasOwnProperty(sidKey)){
         sock = unOwnedConnect[sidKey];
-        if(sock.readyState != 1){
-            sock = null;
-        }
     }else if(ownedConnect.hasOwnProperty(sidKey)){
         sock = ownedConnect[sidKey];
-        if(sock.readyState != 1){
-            sock = null;
-        }
     }else if(ownedConnectUIDMap.hasOwnProperty(uidKey)){
         sock = ownedConnectUIDMap[uidKey];
-        if(sock.readyState != 1){
-            sock = null;
-        }
     }
-
-    return sock;
+    if(sock && sock.readyState == 1)
+        return sock;
+    else
+        return null;
 }
 
 /**
@@ -281,7 +329,7 @@ execFuncMap[0x00FF0001] = function(sid,dataObj){
     }
     //心跳服务 s_to_c
     if(sock){
-        sock.send(JSON.stringify({cmd:0x00FF0002,seq:seq + 1,c_seq:seq,st:parseInt(new Date().valueOf() / 1000)}));
+        writeSock(sock,JSON.stringify({cmd:0x00FF0002,seq:seq + 1,c_seq:seq,st:parseInt(new Date().valueOf() / 1000)}));
     }
 }
 
@@ -301,32 +349,25 @@ execFuncMap[0x00FF0003] = function(sid,dataObj){
 
         //登陆服务回执 s_to_c
         if(sock){
-            sock.send(JSON.stringify(resObj));
+            writeSock(sock,JSON.stringify(resObj));
         }
     }else{
         //检索用户信息数组
-        if(userInfoMap.hasOwnProperty(loginName)){
-            //有重名的用户则重新命名
-            loginName = loginName + sid;
-        }
         if(!userInfoMap.hasOwnProperty(loginName)){
-            //没有用户信息就创建个新的
-            var sex = loginName.length % 2
-            var tj = sex == 0 ? resourcePathArr_girl.length:resourcePathArr_boy.length;
-            tj = parseInt(Math.random()*tj)%tj;
-            var resourceP = sex == 0 ? resourcePathArr_girl[tj]:resourcePathArr_boy[tj];
-            userInfoMap[loginName] = {
-                "nickName":loginName,
-                "headerImage":"",
-                "sex":sex,
-                "uid":sid,
-                "loginName":loginName,
-                "resourcePath":resourceP
+            //没有用户信息登录失败
+            resObj["code"] = 256;//登陆名不能为空
+            resObj["fe"] = "用户名不存在"
+            resObj["cmd"] = 0x00FF0004;
+            //向客户端发送数据
+            var sock = getSocketByUIDAndSID(sid,uid);
+            //登陆服务回执 s_to_c
+            if(sock){
+                writeSock(sock,JSON.stringify(resObj));
             }
-            userIDForNickNameMap[sid] = loginName;
+            return;
         }
         var uinfo = userInfoMap[loginName];
-            var uidKey = uinfo["uid"].toString();
+        var uidKey = uinfo["uid"].toString();
 
             uid = uinfo["uid"];
             resObj["code"] = 0;
@@ -338,38 +379,8 @@ execFuncMap[0x00FF0003] = function(sid,dataObj){
             resObj["loginName"] = uinfo["loginName"];
             resObj["resourcePath"] = uinfo["resourcePath"];
             if(ownedConnectUIDMap.hasOwnProperty(uidKey)){
-                console.log(loginName + "_" + sid + "走进了错误的流程")
-                // //对之前的用户发送掉线消息
-                // var preSock = ownedConnectUIDMap[uidKey];
-                // //设置移除结束后的处理函数的参数
-                // preSock.endCompleteArgs = [resObj,sid,uid];
-                // //设置移除结束后的处理函数
-                // preSock.endCompleteFunc = function(obj,s_id,u_id){
-                //     var sidKey = s_id.toString();
-                //     //向当前的socket链接发送用户登录成功消息
-                //     //将socket链接从unOwnedConnect移动到ownedConnect中
-                //     if(unOwnedConnect.hasOwnProperty(sidKey))
-                //     {
-                //         //添加到新
-                //         ownedConnect[sidKey] = unOwnedConnect[sidKey];
-                //         ownedConnect[sidKey].uid = u_id;
-                //         //移除
-                //         unOwnedConnect[sidKey] = null;
-                //         delete unOwnedConnect[sidKey];
-                //         //添加到登陆MAP
-                //         ownedConnectUIDMap[uidKey] = ownedConnect[sidKey];
-                //     }
-                //     obj["cmd"] = 0x00FF0004;
-
-                //     //向客户端发送数据
-                //     var sock = getSocketByUIDAndSID(s_id,u_id);
-                //     //登陆服务回执 s_to_c
-                //     if(sock){
-                //         sock.send(JSON.stringify(obj));
-                //     }
-                // }
-                // //结束socket,并发送掉线通知
-                // preSock.end(JSON.stringify({"cmd":0x00FF0007,"seq":(seq + 1),"code":259,"reason":"其它端登陆,您已经被踢"}));
+                //将之前的用户踢出，使其socket断链,断开成功后，执行新的进入教室
+                closePreUserSocket(sid,uid,resObj);
             }else{
                 //新用户登录
                 var sidKey = sid.toString();
@@ -392,39 +403,50 @@ execFuncMap[0x00FF0003] = function(sid,dataObj){
                 sock.nn = resObj.nn;
                 //登陆服务回执 s_to_c
                 if(sock){
-                    sock.send(JSON.stringify(resObj));
+                    writeSock(sock,JSON.stringify(resObj));
                 }
             }
     }
 
 }
 
-//登出服务
-execFuncMap[0x00FF0005] = function(sid,dataObj){
-    var uid = dataObj.uid || -1;
-    uid = parseInt(uid);
-    var sock = getSocketByUIDAndSID(sid,uid);
-    if(sock){
-        var sidKey = sid.toString();
-        var uidKey = uid.toString();
-        var seq = dataObj["seq"] || 0;
-        //退出频道
-
-        //退出登陆
-        if(ownedConnect.hasOwnProperty(sidKey))
-        {
-            //添加到未绑定UID的Map
-            unOwnedConnect[sidKey] = ownedConnect[sidKey];
-            //移除
-            ownedConnect[sidKey] = null;
-            delete ownedConnect[sidKey];
-            //从登录MAP中移除
-            ownedConnectUIDMap[uidKey] = null;
-            delete ownedConnectUIDMap[uidKey];
-        }
-        sock.send(JSON.stringify({"cmd":0x00FF0006,"seq":seq + 1,"c_seq":seq}));
-    }
+function closePreUserSocket(sid,uid,dataObj){
+    var uidKey = uid.toString();
+    //对之前的用户发送掉线消息
+    var preSock = ownedConnectUIDMap[uidKey];
+//设置移除结束后的处理函数的参数
+console.log("======>"+sid+""+uid);
+                preSock.endCompleteArgs = [sid,uid,dataObj];
+                //设置移除结束后的处理函数
+                preSock.endCompleteFunc = function(s_id,u_id,newDataObj){
+                    var sidKey = s_id.toString();
+                    //向当前的socket链接发送用户登录成功消息
+                    //将socket链接从unOwnedConnect移动到ownedConnect中
+                    if(unOwnedConnect.hasOwnProperty(sidKey))
+                    {
+                        //添加到新
+                        ownedConnect[sidKey] = unOwnedConnect[sidKey];
+                        ownedConnect[sidKey].uid = u_id;
+                        //移除
+                        unOwnedConnect[sidKey] = null;
+                        delete unOwnedConnect[sidKey];
+                        //添加到登陆MAP
+                        ownedConnectUIDMap[uidKey] = ownedConnect[sidKey];
+                    }else{
+                        console.log("逻辑错误，不应该进入这个环节");
+                    }
+                    newDataObj["cmd"] = 0x00FF0004;
+                    //向客户端发送数据
+                    var sock = getSocketByUIDAndSID(s_id,u_id);
+                    //登陆服务回执 s_to_c
+                    if(sock){
+                        writeSock(sock,JSON.stringify(newDataObj));
+                    }
+                }
+                //结束socket,并发送掉线通知
+                preSock.end(JSON.stringify({"cmd":0x00FF0007,"seq":(seq + 1),"code":259,"reason":"其它端登录,您已经被踢"}));                
 }
+
 
 //获取用户信息服务
 execFuncMap[0x00FF0008] = function(sid,dataObj){
@@ -458,7 +480,7 @@ execFuncMap[0x00FF0008] = function(sid,dataObj){
             resObj.c_seq = seq;
             resObj.fe = "用户不存在";
         }
-        sock.send(JSON.stringify(resObj));
+        writeSock(sock,JSON.stringify(resObj));
     }
 }
 
@@ -472,7 +494,7 @@ execFuncMap[0x00FF000A] = function(sid,dataObj){
         return
     }
     if(uid < 0){
-        sock.send(JSON.stringify({"cmd":0x00FF000B,"seq":seq + 1,"c_seq":seq,"code":257,"fe":"用户信息不存在,无法更新"}));
+        writeSock(sock,JSON.stringify({"cmd":0x00FF000B,"seq":seq + 1,"c_seq":seq,"code":257,"fe":"用户信息不存在,无法更新"}));
         return;
     }
     var ln = userIDForNickNameMap[uid] || "";
@@ -501,7 +523,7 @@ execFuncMap[0x00FF000A] = function(sid,dataObj){
         resObj.c_seq = seq;
         resObj.fe = "用户信息不存在,无法更新数据";
     }
-    sock.send(JSON.stringify(resObj));
+    writeSock(sock,JSON.stringify(resObj));
 
 }
 
@@ -515,7 +537,7 @@ execFuncMap[0x00FF000C] = function(sid,dataObj){
         return
     }
     if(uid < 0){
-        sock.send(JSON.stringify({"cmd":0x00FF000D,"seq":seq + 1,"c_seq":seq,"code":257,"fe":"用户信息不存在,无法创建room"}));
+        writeSock(sock,JSON.stringify({"cmd":0x00FF000D,"seq":seq + 1,"c_seq":seq,"code":257,"fe":"用户信息不存在,无法创建room"}));
         return;
     }
     //创建频道
@@ -545,7 +567,7 @@ execFuncMap[0x00FF000C] = function(sid,dataObj){
     resObj.fe = "";
     resObj.rid = rid;
     resObj.rc = roomInfo.token;
-    sock.send(JSON.stringify(resObj));
+    writeSock(sock,JSON.stringify(resObj));
 
 }
 
@@ -558,10 +580,6 @@ execFuncMap[0x00FF000E] = function(sid,dataObj){
     if(!sock){
         return
     }
-    //if(uid < 0){
-    //    sock.send(JSON.stringify({"cmd":0x00FF000D,"seq":seq + 1,"c_seq":seq,"code":257,"fe":"用户信息不存在,无法创建room"}));
-    //    return;
-    //}
     //遍历roomMap,封装返回数据
     var resObj = {}
     resObj.code = 0;
@@ -576,7 +594,7 @@ execFuncMap[0x00FF000E] = function(sid,dataObj){
         }
     }
     //向客户端返回结果
-    sock.send(JSON.stringify(resObj));
+    writeSock(sock,JSON.stringify(resObj));
 }
 
 //删除room
@@ -589,7 +607,7 @@ execFuncMap[0x00FF0011] = function(sid,dataObj){
         return
     }
     if(rid < 0){
-        sock.send(JSON.stringify({"cmd":0x00FF0012,"seq":seq + 1,"c_seq":seq,"code":260,"fe":"删除room失败,room不存在"}));
+        writeSock(sock,JSON.stringify({"cmd":0x00FF0012,"seq":seq + 1,"c_seq":seq,"code":260,"fe":"删除room失败,room不存在"}));
         return;
     }
     //遍历roomMap,封装返回数据
@@ -611,7 +629,7 @@ execFuncMap[0x00FF0011] = function(sid,dataObj){
         resObj.fe = "删除room失败,room不存在";
     }
     //向客户端返回结果
-    sock.send(JSON.stringify(resObj));
+    writeSock(sock,JSON.stringify(resObj));
 }
 
 /**
@@ -631,7 +649,7 @@ function roomStatusNotify(uidArr,messageJson){
         var uid = uidArr[i];
         var sock = getSocketByUIDAndSID(-1,uid);
         if(sock){
-            sock.send(dataStr);
+            writeSock(sock,dataStr);
         }
     }
 }
@@ -655,14 +673,14 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
         resobj.cmd = 0x00FF0015;
         resobj.seq = seq + 1;
         resobj.c_seq = seq;
-        if(roomCode == ""){
+        if(roomCode == "" || roomCode.length < 12){
             resobj.code = 262;
             resobj.fe = "进入room失败,邀请码无效"
             //向请求端发送回执消息
-            sock.send(JSON.stringify(resobj));
+            writeSock(sock,JSON.stringify(resobj));
             return;
         }
-        var rid = 1;//parseInt("0x" + roomCode.substring(32,roomCode.length));
+        var rid = parseInt(roomCode.substring(12,roomCode.length));
         var roominfo = roomMap[rid];
         if(roominfo){
             var allowJoin = roominfo.token == dataObj.rc;//是否允许进入教室
@@ -670,9 +688,16 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
                 resobj.code = 262;
                 resobj.fe = "进入room失败,邀请码无效"
                 //向请求端发送回执消息
-                sock.send(JSON.stringify(resobj));
+                writeSock(sock,JSON.stringify(resobj));
                 return;
             }
+
+            这里有问题，有问题，哈哈哈
+
+            
+
+
+            
             var j = roominfo.userArr.length;
             var uidArr = [];
             for(var i = 0 ;i < j;i++){
@@ -697,7 +722,7 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
                 resobj.rn = roominfo.roomName;
                 resobj.ri = roominfo.roomImage;
                 resobj.ua = roominfo.userArr;
-                sock.send(JSON.stringify(resobj));
+                writeSock(sock,JSON.stringify(resobj));
                 //向教室内的其它用户发送 用户状态变更通知
                 var notifyUser = {};
                 notifyUser.uid = user.uid;
@@ -725,13 +750,13 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
                 resobj.code = 261;
                 resobj.fe = "进入room失败,该用户已经再room中"
                 //向请求端发送回执消息
-                sock.send(JSON.stringify(resobj));
+                writeSock(sock,JSON.stringify(resobj));
             }
         }else{
             resobj.code = 260;
             resobj.fe = "进入room失败,room不存在"
             //向请求端发送回执消息
-            sock.send(JSON.stringify(resobj));
+            writeSock(sock,JSON.stringify(resobj));
         }
 
     }
@@ -756,7 +781,7 @@ function userStatusChangeNotify(uidArr,changedUserInfoArr){
         var uid = uidArr[i];
         var sock = getSocketByUIDAndSID(-1,uid);
         if(sock){
-            sock.send(resString);
+            writeSock(sock,resString);
         }
     }
 }
@@ -851,7 +876,7 @@ function chatMSGNotify(uidArr,rid,msgArr){
         var uid = uidArr[i];
         var sock = getSocketByUIDAndSID(-1,uid);
         if(sock){
-            sock.send(notifyStr);
+            writeSock(sock,notifyStr);
         }
     }
 }
@@ -900,7 +925,7 @@ function adminCMDNotify(uidArr,rid,adminCMDArr){
         var uid = uidArr[i];
         var sock = getSocketByUIDAndSID(-1,uid);
         if(sock){
-            sock.send(notifyStr);
+            writeSock(sock,notifyStr);
         }
     }
 }
@@ -949,7 +974,7 @@ function tongyongCMDNotify(uidArr,rid,tongyongCMDArr){
         var uid = uidArr[i];
         var sock = getSocketByUIDAndSID(-1,uid);
         if(sock){
-            sock.send(notifyStr);
+            writeSock(sock,notifyStr);
         }
     }
 }
@@ -1028,41 +1053,26 @@ execFuncMap[0x00FF102E] = function(sid,dataObj){
         //推送至客户端
         var sock = getSocketByUIDAndSID(-1,key);
         if(sock){
-            sock.send(notifyStr);
+            writeSock(sock,notifyStr);
         }
     }
 }
-//临时使用
-function tuizuobiao(){
-    var notifyObj = {};
-    notifyObj.cmd = 0x00FF111E;
-    notifyObj.seq = 0;
-    notifyObj.code = 0;
-    notifyObj.rid = 1;
-    notifyObj.datas = waitTuiSongPosition;
-    var notifyStr = JSON.stringify(notifyObj);
 
-    var roomInfo = roomMap[1];
-    var arr = roomInfo.userArr;
-    var j = arr.length;
-    //更新用户数据
-    for(var i=0;i<j;i++){
-        var key = arr[i].uid
-        if(waitTuiSongPosition[key]){
-            arr[i].ca.x = waitTuiSongPosition[key].x;
-            arr[i].ca.y = waitTuiSongPosition[key].y
-            delete waitTuiSongPosition[key];
-        }
-        //推送至客户端
-        var sock = getSocketByUIDAndSID(-1,key);
-        if(sock){
-            sock.send(notifyStr);
-        }
+
+/**
+sock  拆包发送
+*/
+function writeSock(sock,str){
+    var waitSendStr = "<gmlb>" + str + "<gmle>";
+    var result = "";
+    //拆包发送，  如果要发送的内容长度大于500 则拆成N个包，发送
+    while(waitSendStr.length > packageSize){
+        result = waitSendStr.substring(0,packageSize);
+        sock.send(result);
+        waitSendStr = waitSendStr.substring(packageSize,waitSendStr.length);
     }
-    setTimeout(tuizuobiao, 50);
+    sock.send(waitSendStr);
 }
-setTimeout(tuizuobiao, 50);
-
 //主入口逻辑部分--------------------------------
 if(require.main === module){
     start();
