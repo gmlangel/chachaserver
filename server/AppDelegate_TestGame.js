@@ -691,26 +691,15 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
                 writeSock(sock,JSON.stringify(resobj));
                 return;
             }
-
-            这里有问题，有问题，哈哈哈
-
-            
-
-
-            
             var j = roominfo.userArr.length;
-            var uidArr = [];
             for(var i = 0 ;i < j;i++){
                 if(roominfo.userArr[i].uid == user.uid){
-                    //教室内存在重复的用户,则不允许再次进入教室
-                    allowJoin = false;
+                    //从教室内移除重复的用户
+                    roominfo.userArr.slice(i,1);
+                    roominfo.userIdArr.slice(roominfo.userIdArr.indexOf(user.uid),1);
                     break;
-                }else{
-                    //将用户ID记录到集合,用于发送 用户状态变更通知
-                    uidArr.push(roominfo.userArr[i].uid);
                 }
             }
-            if(allowJoin){
                 //将rid绑定到socket链接上
                 sock.rid = rid;
                 //加入到教室的用户列表
@@ -732,7 +721,7 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
                 notifyUser.ca = user.ca;//用户自定义属性 object类型
                 notifyUser.rp = user.rp
                 notifyUser.type = 1;//是进入教室 还是退出教室
-                userStatusChangeNotify(uidArr,[notifyUser]);
+                userStatusChangeNotify(roominfo.userIdArr,[notifyUser]);
                 //向该用户推送教室内缓存的文本消息通知
                 if(roominfo.messageArr.length > 0){
                     chatMSGNotify([user.uid],rid,roominfo.messageArr);
@@ -746,12 +735,7 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
                 if(roominfo.tongyongCMDArr.length > 0){
                     tongyongCMDNotify([user.uid],rid,roominfo.tongyongCMDArr);
                 }
-            }else{
-                resobj.code = 261;
-                resobj.fe = "进入room失败,该用户已经再room中"
-                //向请求端发送回执消息
-                writeSock(sock,JSON.stringify(resobj));
-            }
+                roominfo.userIdArr.push(user.uid);
         }else{
             resobj.code = 260;
             resobj.fe = "进入room失败,room不存在"
@@ -837,16 +821,9 @@ execFuncMap[0x00FF0018] = function(sid,dataObj){
     var roominfo = roomMap[rid];
     if(roominfo){
         //从room信息中移除用户信息
-        var userArr = roominfo.userArr;
-        var j = userArr.length;
-        var userIDArr = [];
-        for(var i = 0 ;i<j; i++){
-            //填充被推送用户的ID数组
-            if(userArr[i].uid != uid)
-            {
-                userIDArr.push(uid);
-            }
-        }
+        var userIDArr = roominfo.userIdArr.concat();
+        if(userIDArr.indexOf(uid)>0)
+            userIDArr.splice(userIDArr.indexOf(uid),1);
         //封装通知的信息数据体
         var serverTime = new Date().valueOf();
         var msg = {suid:uid,st:serverTime,lt:dataObj.lt,msg:dataObj.msg};
@@ -889,16 +866,9 @@ execFuncMap[0x00FF001A] = function(sid,dataObj){
     var roominfo = roomMap[rid];
     if(roominfo){
         //从room信息中移除用户信息
-        var userArr = roominfo.userArr;
-        var j = userArr.length;
-        var userIDArr = [];
-        for(var i = 0 ;i<j; i++){
-            //填充被推送用户的ID数组
-            if(userArr[i].uid != uid)
-            {
-                userIDArr.push(uid);
-            }
-        }
+        var userIDArr = roominfo.userIdArr.concat();
+        if(userIDArr.indexOf(uid)>0)
+            userIDArr.splice(userIDArr.indexOf(uid),1);
         //封装通知的信息数据体
         var serverTime = new Date().valueOf();
         var cm = {suid:uid,st:serverTime,lt:dataObj.lt,cmd:dataObj.cmd};
@@ -938,16 +908,9 @@ execFuncMap[0x00FF001C] = function(sid,dataObj){
     var roominfo = roomMap[rid];
     if(roominfo){
         //从room信息中移除用户信息
-        var userArr = roominfo.userArr;
-        var j = userArr.length;
-        var userIDArr = [];
-        for(var i = 0 ;i<j; i++){
-            //填充被推送用户的ID数组
-            if(userArr[i].uid != uid)
-            {
-                userIDArr.push(userArr[i].uid);
-            }
-        }
+        var userIDArr = roominfo.userIdArr.concat();
+        if(userIDArr.indexOf(uid)>0)
+            userIDArr.splice(userIDArr.indexOf(uid),1);
         //封装通知的信息数据体
         var serverTime = new Date().valueOf();
         var data = {suid:uid,st:serverTime,lt:dataObj.lt,data:dataObj.data};
@@ -1007,57 +970,86 @@ execFuncMap[0x00FF001E] = function(sid,dataObj){
     }
 }
 
-//收到用户动画数据
-execFuncMap[0x00FF101E] = function(sid,dataObj){
-    var uid = dataObj.uid || -1;
-    uid = parseInt(uid);
-    var rid = dataObj.rid || -1;
-    // var roominfo = roomMap[rid];
-    // if (roominfo) {
-        //添加到等待推送列表
-        waitTuiSongPosition[uid] ={"uid":uid,"x":dataObj.ca.x,"y":dataObj.ca.y}
-    //}
-}
+// //收到用户动画数据
+// execFuncMap[0x00FF101E] = function(sid,dataObj){
+//     var uid = dataObj.uid || -1;
+//     uid = parseInt(uid);
+//     var rid = dataObj.rid || -1;
+//     // var roominfo = roomMap[rid];
+//     // if (roominfo) {
+//         //添加到等待推送列表
+//         waitTuiSongPosition[uid] ={"uid":uid,"x":dataObj.ca.x,"y":dataObj.ca.y}
+//     //}
+// }
 
-//收到队长位置信息数据
-execFuncMap[0x00FF102E] = function(sid,dataObj){
-    var uid = dataObj.uid || -1;
-    uid = parseInt(uid);
-    if(uid <=0)
-    {
-        return;
-    }
-    // var rid = dataObj.rid || -1;
-    // var roominfo = roomMap[rid];
-    // if (roominfo) {
-    //     //添加到等待推送列表
-    //     waitTuiSongPosition[uid] ={"uid":uid,"x":dataObj.ca.x,"y":dataObj.ca.y}
-    // }
-    var notifyObj = {};
-    notifyObj.cmd = 0x00FF102F;
-    notifyObj.seq = 0;
-    notifyObj.code = 0;
-    notifyObj.rid = 1;
-    notifyObj.data = {"uid":uid,"x":dataObj.ca.x,"y":dataObj.ca.y};
-    var notifyStr = JSON.stringify(notifyObj);
+// //收到队长位置信息数据
+// execFuncMap[0x00FF102E] = function(sid,dataObj){
+//     var uid = dataObj.uid || -1;
+//     uid = parseInt(uid);
+//     if(uid <=0)
+//     {
+//         return;
+//     }
+//     // var rid = dataObj.rid || -1;
+//     // var roominfo = roomMap[rid];
+//     // if (roominfo) {
+//     //     //添加到等待推送列表
+//     //     waitTuiSongPosition[uid] ={"uid":uid,"x":dataObj.ca.x,"y":dataObj.ca.y}
+//     // }
+//     var notifyObj = {};
+//     notifyObj.cmd = 0x00FF102F;
+//     notifyObj.seq = 0;
+//     notifyObj.code = 0;
+//     notifyObj.rid = 1;
+//     notifyObj.data = {"uid":uid,"x":dataObj.ca.x,"y":dataObj.ca.y};
+//     var notifyStr = JSON.stringify(notifyObj);
 
-    var roomInfo = roomMap[1];
-    var arr = roomInfo.userArr;
-    var j = arr.length;
-    //向除队长之外的其它用户，推送队长的位置
-    for(var i=0;i<j;i++){
-        var key = arr[i].uid
-        if(uid == key){
-            continue;
-        }
-        //推送至客户端
-        var sock = getSocketByUIDAndSID(-1,key);
-        if(sock){
-            writeSock(sock,notifyStr);
-        }
-    }
-}
+//     var roomInfo = roomMap[1];
+//     var arr = roomInfo.userArr;
+//     var j = arr.length;
+//     //向除队长之外的其它用户，推送队长的位置
+//     for(var i=0;i<j;i++){
+//         var key = arr[i].uid
+//         if(uid == key){
+//             continue;
+//         }
+//         //推送至客户端
+//         var sock = getSocketByUIDAndSID(-1,key);
+//         if(sock){
+//             writeSock(sock,notifyStr);
+//         }
+//     }
+// }
 
+// //临时使用
+// function tuizuobiao(){
+//     var notifyObj = {};
+//     notifyObj.cmd = 0x00FF111E;
+//     notifyObj.seq = 0;
+//     notifyObj.code = 0;
+//     notifyObj.rid = 1;
+//     notifyObj.datas = waitTuiSongPosition;
+//     var notifyStr = JSON.stringify(notifyObj);
+
+//     var roomInfo = roomMap[1];
+//     var arr = roomInfo.userArr;
+//     var j = arr.length;
+//     //更新用户数据
+//     for(var i=0;i<j;i++){
+//         var key = arr[i].uid
+//         if(waitTuiSongPosition[key]){
+//             arr[i].ca.x = waitTuiSongPosition[key].x;
+//             arr[i].ca.y = waitTuiSongPosition[key].y
+//             delete waitTuiSongPosition[key];
+//         }
+//         //推送至客户端
+//         var sock = getSocketByUIDAndSID(-1,key);
+//         if(sock){
+//             sock.send(notifyStr);
+//         }
+//     setTimeout(tuizuobiao, 50);
+// }
+// setTimeout(tuizuobiao, 50);
 
 /**
 sock  拆包发送
