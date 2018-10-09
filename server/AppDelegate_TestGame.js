@@ -15,6 +15,7 @@ var ownedConnect = {};//有主连接字典{sid:socket}
 var ownedConnectUIDMap = {};//有主连接字典{uid:socket}
 var execFuncMap = {};//数据包处理函数的字典
 var waitTuiSongPosition={};//等待推送的用户坐标数据
+var packageSize = 500;
 //老师权限
 var teaRole = {
     "canSendcmd":1
@@ -83,11 +84,12 @@ roomMap[1] ={
         roomImage:"",/*room图标*/
         createTime:0,/*创建时间*/
         token:"testchanel_1",/*频道邀请码*/
-        owneerUID:100,/*创建频道的人的ID*/
+        ownnerUID:100,/*创建频道的人的ID*/
         userArr:[],/*当前频道中的人的信息数组*/
         userIdArr:[],/*用户ID数组*/
         messageArr:[],/*文本消息记录最后10条*/
         adminCMDArr:[],/*管理员命令集合*/
+        mediaMap:{},/*uid与媒体ID的映射*/
         tongyongCMDArr:[]/*通用教学命令集合*/
     }
 
@@ -97,11 +99,12 @@ roomMap[2]={
         roomImage:"",/*room图标*/
         createTime:0,/*创建时间*/
         token:"testchanel_2",/*频道邀请码*/
-        owneerUID:100,/*创建频道的人的ID*/
+        ownnerUID:100,/*创建频道的人的ID*/
         userArr:[],/*当前频道中的人的信息数组*/
         userIdArr:[],/*用户ID数组*/
         messageArr:[],/*文本消息记录最后10条*/
         adminCMDArr:[],/*管理员命令集合*/
+        mediaMap:{},/*uid与媒体ID的映射*/
         tongyongCMDArr:[]/*通用教学命令集合*/
     }
 
@@ -112,7 +115,7 @@ function start(){
 
     mainServer = new WebSocketServer({ port: 31111,host:"0.0.0.0"});
     mainServer.on('connection', function (newConnectIns) {
-        console.log('client connected');
+        //console.log('client connected');
         newConnectIns.sid = createConnectId();//为socket链接设置ID;
         socketDataMap[newConnectIns.sid] = "";//创建一个用于存储该链接发来的数据的集合
         console.log("新链接接入,socAddress:"+newConnectIns._socket.remoteAddress + " socPort:" + newConnectIns._socket.remotePort," sid:" + newConnectIns.sid)
@@ -189,26 +192,30 @@ function createConnectId(){
  * @param dataBuffer Buffer
  * */
 function analyzeDataPackage(sid,dataBuffer){
-    try{
+
         var dataStr = dataBuffer.toString();
         socketDataMap[sid] = socketDataMap[sid] + dataStr;
         var tempStr = socketDataMap[sid];
         var pkgHeadIdx = tempStr.indexOf("<gmlb>");//取包头
         var pkgEndIdx = tempStr.indexOf("<gmle>");//取包尾
         var waitJSONStr = "";
-        while(pkgHeadIdx > 0 && pkgEndIdx > 0){
+        while(pkgHeadIdx >= 0 && pkgEndIdx > 0){
             if(pkgEndIdx > pkgHeadIdx){
                 //可以读出一个数据包
                 waitJSONStr = tempStr.substring(pkgHeadIdx + 6,pkgEndIdx);
                 //清空pkgEndIdx以前的所有数据
                 tempStr = tempStr.substring(pkgEndIdx+6,tempStr.length);
-                var obj = JSON.parse(waitJSONStr);
-                var cmd = obj["cmd"] || 0;
-                cmd = parseInt(cmd);
-                //console.log("收到数据包",cmd.toString(16))
-                //如果存在处理函数,则进行处理
-                if(execFuncMap.hasOwnProperty(cmd) && typeof(execFuncMap[cmd]) == 'function'){
-                    execFuncMap[cmd](sid,obj);
+                try{
+                    var obj = JSON.parse(waitJSONStr);
+                    var cmd = obj["cmd"] || 0;
+                    cmd = parseInt(cmd);
+                    //如果存在处理函数,则进行处理
+                    if(execFuncMap.hasOwnProperty(cmd) && typeof(execFuncMap[cmd]) == 'function'){
+                        execFuncMap[cmd](sid,obj);
+                    }
+                }catch(err){
+                    console.log(err);
+                    console.log("数据包不是JSON字符串",dataStr);
                 }
             }else{
                 //清空pkgHeadIdx以前的所有数据
@@ -218,11 +225,6 @@ function analyzeDataPackage(sid,dataBuffer){
             pkgHeadIdx = tempStr.indexOf("<gmlb>");//重新取包头
             pkgEndIdx = tempStr.indexOf("<gmle>");//重新取包尾
         }
-        
-    }catch(err){
-        console.log(err);
-        console.log("数据包不是JSON字符串",dataStr);
-    }
 }
 
 /**
@@ -236,6 +238,7 @@ function destroySocket(soc){
     var sid = soc.sid;
     var uid = soc.uid;
     socketDataMap[sid] = "";
+    userIDForNickNameMap[uid] = null;
     try{
         if(unOwnedConnect.hasOwnProperty(sidKey)){
             unOwnedConnect[sidKey] = null;
@@ -275,6 +278,7 @@ function destroySocket(soc){
             //从用户信息数组中移除
             userArr.splice(wangtI,1);
             roomInfo.userIdArr.splice(roomInfo.userIdArr.indexOf(uid),1);
+            roomInfo.mediaMap[uid] = -1;
             //向其他用户发送用户变更通知
             userStatusChangeNotify(roomInfo.userIdArr,[wantRemoveObj]);
         }
@@ -337,7 +341,6 @@ execFuncMap[0x00FF0001] = function(sid,dataObj){
 execFuncMap[0x00FF0003] = function(sid,dataObj){
     var loginName = dataObj.ln || "";
     var seq = dataObj["seq"] || 0;
-    loginName = loginName.toLocaleLowerCase();//转小写,避免大小写账号重复问题
     var resObj = {"seq":(seq + 1),"c_seq":seq};
     var uid = -1;
     if(loginName == ""){
@@ -384,6 +387,7 @@ execFuncMap[0x00FF0003] = function(sid,dataObj){
             }else{
                 //新用户登录
                 var sidKey = sid.toString();
+                userIDForNickNameMap[uid] = loginName;
                 //向当前的socket链接发送用户登录成功消息
                 //将socket链接从unOwnedConnect移动到ownedConnect中
                 if(unOwnedConnect.hasOwnProperty(sidKey))
@@ -550,12 +554,15 @@ execFuncMap[0x00FF000C] = function(sid,dataObj){
         roomImage:dataObj["ri"] || "",/*room图标*/
         createTime:timeIntaval,/*创建时间*/
         token:createToken(uid)+rid.toString(16),/*频道邀请码*/
-        owneerUID:uid,/*创建频道的人的ID*/
+        ownnerUID:uid,/*创建频道的人的ID*/
         userArr:[],/*当前频道中的人的信息数组*/
         messageArr:[],/*文本消息记录最后10条*/
         adminCMDArr:[],/*管理员命令集合*/
+        userIdArr:[],/*用户ID数组*/
+        mediaMap:{},/*uid与媒体ID的映射*/
         tongyongCMDArr:[]/*通用教学命令集合*/
     }
+        
 
     roomMap[rid] = roomInfo;
     //向客户端返回结果
@@ -589,7 +596,7 @@ execFuncMap[0x00FF000E] = function(sid,dataObj){
     resObj.ra = [];
     for(var key in roomMap){
         var rinfo = roomMap[key];
-        if(rinfo.owneerUID == uid){
+        if(rinfo.ownnerUID == uid){
             resObj.ra.push({rid:rinfo.roomid,rc:rinfo.token,rn:rinfo.roomName,ri:rinfo.roomImage});
         }
     }
@@ -680,7 +687,7 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
             writeSock(sock,JSON.stringify(resobj));
             return;
         }
-        var rid = parseInt(roomCode.substring(12,roomCode.length));
+        var rid = parseInt(roomCode.substring(11,roomCode.length));
         var roominfo = roomMap[rid];
         if(roominfo){
             var allowJoin = roominfo.token == dataObj.rc;//是否允许进入教室
@@ -711,6 +718,8 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
                 resobj.rn = roominfo.roomName;
                 resobj.ri = roominfo.roomImage;
                 resobj.ua = roominfo.userArr;
+                resobj.mediaMap = roominfo.mediaMap;
+                resobj.ownnerUID = roominfo.ownnerUID;
                 writeSock(sock,JSON.stringify(resobj));
                 //向教室内的其它用户发送 用户状态变更通知
                 var notifyUser = {};
@@ -966,6 +975,44 @@ execFuncMap[0x00FF001E] = function(sid,dataObj){
         if(wantObj != null){
             //发送用户状态信息变更通知
             userStatusChangeNotify(uidArr,[wantObj]);
+        }
+    }
+}
+
+//更新教室内的用户ID与媒体ID的映射
+execFuncMap[0x00FF0020] = function(sid,dataObj){
+    var uid = dataObj.uid || -1;
+    uid = parseInt(uid);
+    var rid = dataObj.rid || -1;
+    var roominfo = roomMap[rid];
+    if (roominfo) {
+        roominfo.mediaMap[uid] = dataObj.mid;//更新映射
+        //从room信息中移除用户信息
+        var userIDArr = roominfo.userIdArr.concat();
+        if(userIDArr.indexOf(uid)>0)
+            userIDArr.splice(userIDArr.indexOf(uid),1);
+        //封装通知的信息数据体
+        var serverTime = new Date().valueOf();
+        var data = {suid:uid,st:serverTime,mediaId:dataObj.mid};
+        //媒体id映射变更通知
+        mediaIdChangeNotify(userIDArr,rid,data);
+    }
+}
+
+function mediaIdChangeNotify(uidArr,rid,_data){
+    var notifyObj = {};
+    notifyObj.cmd = 0x00FF0021;
+    notifyObj.seq = 0;
+    notifyObj.code = 0;
+    notifyObj.rid = rid;
+    notifyObj.data = _data;
+    var notifyStr = JSON.stringify(notifyObj);
+    var j = uidArr.length;
+    for(var i=0;i<j;i++){
+        var uid = uidArr[i];
+        var sock = getSocketByUIDAndSID(-1,uid);
+        if(sock){
+            writeSock(sock,notifyStr);
         }
     }
 }
