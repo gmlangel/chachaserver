@@ -723,6 +723,7 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
                 resobj.ua = roominfo.userArr;
                 resobj.mediaMap = roominfo.mediaMap;
                 resobj.ownnerUID = roominfo.ownnerUID;
+                resobj.teachingMaterialPath = roominfo.teachingMaterialPath;
                 writeSock(sock,JSON.stringify(resobj));
                 //向教室内的其它用户发送 用户状态变更通知
                 var notifyUser = {};
