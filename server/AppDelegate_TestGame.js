@@ -705,8 +705,8 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
             for(var i = 0 ;i < j;i++){
                 if(roominfo.userArr[i].uid == user.uid){
                     //从教室内移除重复的用户
-                    roominfo.userArr.slice(i,1);
-                    roominfo.userIdArr.slice(roominfo.userIdArr.indexOf(user.uid),1);
+                    roominfo.userArr.splice(i,1);
+                    roominfo.userIdArr.splice(roominfo.userIdArr.indexOf(user.uid),1);
                     break;
                 }
             }
