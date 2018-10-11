@@ -241,6 +241,7 @@ function destroySocket(soc){
             //从用户信息数组中移除
             userArr.splice(wangtI,1);
             roomInfo.userIdArr.splice(roomInfo.userIdArr.indexOf(uid),1);
+            roomInfo.answerUIDQueue.splice(roomInfo.answerUIDQueue.indexOf(uid),1);
             //向其他用户发送用户变更通知
             userStatusChangeNotify(userIDArr,[wantRemoveObj]);
         }
@@ -318,6 +319,11 @@ function updateRoomState(roomInfo){
                 switch(scriptItem.type){
                     case "templateCMD":
                         roomInfo.waitAnswerUids = roomInfo.userIdArr.concat();
+                        if(roomInfo.answerUIDQueue.length > 1){
+                            //存在1个以上的学生，则每次下发问题是，调换答题次序，增强交互(生产环境应该根据用户前的答题评分进行重新排序)
+                            var removeId = roomInfo.answerUIDQueue.splice(0,1);
+                            roomInfo.answerUIDQueue.push(removeId);
+                        }
                         //设置超时等待时间和等待回答响应的用户数组
                         if(scriptItem.value)
                         {
@@ -352,7 +358,7 @@ function updateRoomState(roomInfo){
             }
         }
         if(cmdArr.length > 0){
-            sendTeachScriptNotify(roomInfo.userIdArr,roomInfo.roomid,cmdArr,roomInfo.currentTimeInterval)
+            sendTeachScriptNotify(roomInfo.userIdArr,roomInfo.roomid,cmdArr,roomInfo.currentTimeInterval,roomInfo.answerUIDQueue)
         }
     }else{
         //还未开始
@@ -495,6 +501,7 @@ function joinroom(sid,dataObj){
                 userIdArr:[],/*用户ID数组*/
                 messageArr:[],/*文本消息记录最后10条*/
                 adminCMDArr:[],/*管理员命令集合*/
+                answerUIDQueue:[],/*用户答题序列数组*/
                 tongyongCMDArr:[]/*通用教学命令集合*/
             }
             roomMap[rid] = newroomInfo;
@@ -526,6 +533,7 @@ function joinroom(sid,dataObj){
                 //加入到教室的用户列表
                 roominfo.userArr.push(user);
                 roominfo.userIdArr.push(uid);
+                roominfo.answerUIDQueue.push(uid);
                 //向请求端发送回执消息
                 resobj.code = 0;
                 resobj.fe = ""
@@ -552,7 +560,7 @@ function joinroom(sid,dataObj){
                 }
                 //向该用户推送正在执行的教学命令
                 if(roominfo.tongyongCMDArr.length > 0){
-                    sendTeachScriptNotify([user.uid],rid,roominfo.tongyongCMDArr,roominfo.currentTimeInterval)
+                    sendTeachScriptNotify([user.uid],rid,roominfo.tongyongCMDArr,roominfo.currentTimeInterval,roominfo.answerUIDQueue)
                 }
                 //如果教材脚本加载完毕，则下推教材脚本
                 if(teachScriptMap[roominfo.teachingTmaterialScriptID]){
@@ -595,6 +603,7 @@ function leaveRoom(sid,roominfo,uid){
             //从用户信息数组中移除
             userArr.splice(wangtI,1);
             roominfo.userIdArr.splice(roominfo.userIdArr.indexOf(uid),1)
+            roominfo.answerUIDQueue.splice(roominfo.answerUIDQueue.indexOf(uid),1)
             //向其他用户发送用户变更通知
             userStatusChangeNotify(userIDArr,[wantRemoveObj]);
         }
@@ -870,7 +879,7 @@ execFuncMap[0x00FF001C] = function(sid,dataObj){
 /**
  * 下发教学脚本
  * */
-function sendTeachScriptNotify(uidArr,rid,tongyongCMDArr,playTimeInterval){
+function sendTeachScriptNotify(uidArr,rid,tongyongCMDArr,playTimeInterval,answerUIDQueue){
     console.log("下发教学命令:"+globelDate)
     console.log(tongyongCMDArr)
     var notifyObj = {};
@@ -879,7 +888,8 @@ function sendTeachScriptNotify(uidArr,rid,tongyongCMDArr,playTimeInterval){
     notifyObj.code = 0;
     notifyObj.rid = rid;
     notifyObj.datas = tongyongCMDArr;
-    notifyObj.playTimeInterval = playTimeInterval;//命令执行的剩余时间 秒数
+    notifyObj.answerUIDQueue = answerUIDQueue;//用户答题序列（用户id的序列组）
+    notifyObj.playTimeInterval = playTimeInterval;//命令已经执行了的时间 秒数
     var notifyStr = JSON.stringify(notifyObj);
     var j = uidArr.length;
 
