@@ -119,8 +119,7 @@ function start(){
         newConnectIns.on("timeout",function(){
             this.end("socket超时");
         })
-
-        newConnectIns.write(JSON.stringify({"cmd":0x00ff0000,"des":"欢迎加入茶茶服务器"}));
+        writeSock(newConnectIns,JSON.stringify({"cmd":0x00ff0000,"des":"欢迎加入茶茶服务器"}));
     });
     mainServer.listen(mainServerPort,"0.0.0.0",function(){
         console.log('服务器启动成功')
@@ -312,9 +311,9 @@ function updateRoomState(roomInfo){
                 roomInfo.tongyongCMDArr.splice(1,roomInfo.tongyongCMDArr.length - 1)//除第一条换页命令外，移除其余的命令
                 roomInfo.tongyongCMDArr.push(clientScriptItem);//添加新的教学命令缓存
                 roomInfo.roomState = "end";
-                //测试用,重置教室，让教室可以重复利用
-                roomMap[roomInfo.roomid] = null;
-                delete roomMap[roomInfo.roomid];
+                // //测试用， 重置教室，反复使用教室
+                 roomMap[roomInfo.roomid] = null;
+                 delete roomMap[roomInfo.roomid];
             }else{
                 switch(scriptItem.type){
                     case "templateCMD":
@@ -493,7 +492,7 @@ function joinroom(sid,dataObj){
                 completeTime:0,/*用于与currentTimeInterval进行各种时间比对及计算*/
                 startTimeInterval:0,/*课程开始时间beginTime*/
                 teachingTmaterialScriptID:scriptID,/*该教室的教材脚本地址*/
-                currentStepIdx:95,/*教学脚本执行进度*/
+                currentStepIdx:117,/*教学脚本执行进度*/
                 currentQuestionId:-1,/*当前等待应答的问题的ID*/
                 allowNewScript:true,/*允许下发新的教学脚本*/
                 waitAnswerUids:[],/*等待做答的用户ID数组,它是一个触发器,当allowNewScript = false时，只有waitAnswerUids长度为0，才可以重置allowNewScript的状态为true*/
