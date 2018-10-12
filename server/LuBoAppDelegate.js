@@ -492,7 +492,7 @@ function joinroom(sid,dataObj){
                 completeTime:0,/*用于与currentTimeInterval进行各种时间比对及计算*/
                 startTimeInterval:0,/*课程开始时间beginTime*/
                 teachingTmaterialScriptID:scriptID,/*该教室的教材脚本地址*/
-                currentStepIdx:117,/*教学脚本执行进度*/
+                currentStepIdx:0,/*教学脚本执行进度*/
                 currentQuestionId:-1,/*当前等待应答的问题的ID*/
                 allowNewScript:true,/*允许下发新的教学脚本*/
                 waitAnswerUids:[],/*等待做答的用户ID数组,它是一个触发器,当allowNewScript = false时，只有waitAnswerUids长度为0，才可以重置allowNewScript的状态为true*/
