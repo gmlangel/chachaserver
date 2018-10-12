@@ -20,7 +20,7 @@
 		{"id":8,"type":"audio","value":{"path":"P03-sound.m4a","beginSecond":0,"endSecond":5}},
 		{"id":9,"type":"changePage","value":{"pageId":3}},
 		{"id":10,"type":"delay","value":{"timeLength":1}},
-		{"id":11,"type":"audio","value":{"path":"P04.mp4","beginSecond":0,"endSecond":76,"position":[0,198],"size":[576,324]}},
+		{"id":11,"type":"video","value":{"path":"P04.mp4","beginSecond":0,"endSecond":76,"position":[0,198],"size":[576,324]}},
 		{"id":12,"type":"changePage","value":{"pageId":4}},
 		{"id":13,"type":"delay","value":{"timeLength":1}},
 		{"id":14,"type":"audio","value":{"path":"P05-sound.m4a","beginSecond":0,"endSecond":3}},

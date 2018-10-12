@@ -279,7 +279,9 @@ function destroySocket(soc){
             wantRemoveObj.type = 0;
             //从用户信息数组中移除
             userArr.splice(wangtI,1);
-            roomInfo.userIdArr.splice(roomInfo.userIdArr.indexOf(uid),1);
+            if(roomInfo.userIdArr.indexOf(uid) > -1){
+                roomInfo.userIdArr.splice(roomInfo.userIdArr.indexOf(uid),1);
+            }
             roomInfo.mediaMap[uid] = -1;
             //向其他用户发送用户变更通知
             userStatusChangeNotify(roomInfo.userIdArr,[wantRemoveObj]);
@@ -706,7 +708,9 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
                 if(roominfo.userArr[i].uid == user.uid){
                     //从教室内移除重复的用户
                     roominfo.userArr.splice(i,1);
-                    roominfo.userIdArr.splice(roominfo.userIdArr.indexOf(user.uid),1);
+                    if(roominfo.userIdArr.indexOf(user.uid) > -1){
+                        roominfo.userIdArr.splice(roominfo.userIdArr.indexOf(user.uid),1);
+                    }
                     break;
                 }
             }
@@ -835,7 +839,7 @@ execFuncMap[0x00FF0018] = function(sid,dataObj){
     if(roominfo){
         //从room信息中移除用户信息
         var userIDArr = roominfo.userIdArr.concat();
-        if(userIDArr.indexOf(uid)>0)
+        if(userIDArr.indexOf(uid)>-1)
             userIDArr.splice(userIDArr.indexOf(uid),1);
         //封装通知的信息数据体
         var serverTime = new Date().valueOf();
@@ -880,7 +884,7 @@ execFuncMap[0x00FF001A] = function(sid,dataObj){
     if(roominfo){
         //从room信息中移除用户信息
         var userIDArr = roominfo.userIdArr.concat();
-        if(userIDArr.indexOf(uid)>0)
+        if(userIDArr.indexOf(uid)>-1)
             userIDArr.splice(userIDArr.indexOf(uid),1);
         //封装通知的信息数据体
         var serverTime = new Date().valueOf();
@@ -922,7 +926,7 @@ execFuncMap[0x00FF001C] = function(sid,dataObj){
     if(roominfo){
         //从room信息中移除用户信息
         var userIDArr = roominfo.userIdArr.concat();
-        if(userIDArr.indexOf(uid)>0)
+        if(userIDArr.indexOf(uid)>-1)
             userIDArr.splice(userIDArr.indexOf(uid),1);
         //封装通知的信息数据体
         var serverTime = new Date().valueOf();
@@ -993,7 +997,7 @@ execFuncMap[0x00FF0020] = function(sid,dataObj){
         roominfo.mediaMap[uid] = dataObj.mid;//更新映射
         //从room信息中移除用户信息
         var userIDArr = roominfo.userIdArr.concat();
-        if(userIDArr.indexOf(uid)>0)
+        if(userIDArr.indexOf(uid)>-1)
             userIDArr.splice(userIDArr.indexOf(uid),1);
         //封装通知的信息数据体
         var serverTime = new Date().valueOf();

@@ -239,8 +239,13 @@ function destroySocket(soc){
             wantRemoveObj.type = 0;
             //从用户信息数组中移除
             userArr.splice(wangtI,1);
-            roomInfo.userIdArr.splice(roomInfo.userIdArr.indexOf(uid),1);
-            roomInfo.answerUIDQueue.splice(roomInfo.answerUIDQueue.indexOf(uid),1);
+            if(roomInfo.userIdArr.indexOf(uid) > -1){
+                roomInfo.userIdArr.splice(roomInfo.userIdArr.indexOf(uid),1);
+            }
+            if(roomInfo.answerUIDQueue.indexOf(uid) > -1){
+                roomInfo.answerUIDQueue.splice(roomInfo.answerUIDQueue.indexOf(uid),1);
+            }
+            
             //向其他用户发送用户变更通知
             userStatusChangeNotify(userIDArr,[wantRemoveObj]);
         }
@@ -320,7 +325,7 @@ function updateRoomState(roomInfo){
                         roomInfo.waitAnswerUids = roomInfo.userIdArr.concat();
                         if(roomInfo.answerUIDQueue.length > 1){
                             //存在1个以上的学生，则每次下发问题是，调换答题次序，增强交互(生产环境应该根据用户前的答题评分进行重新排序)
-                            var removeId = roomInfo.answerUIDQueue.splice(0,1);
+                            var removeId = roomInfo.answerUIDQueue.shift();
                             roomInfo.answerUIDQueue.push(removeId);
                         }
                         //设置超时等待时间和等待回答响应的用户数组
@@ -601,8 +606,12 @@ function leaveRoom(sid,roominfo,uid){
             wantRemoveObj.type = 0;
             //从用户信息数组中移除
             userArr.splice(wangtI,1);
-            roominfo.userIdArr.splice(roominfo.userIdArr.indexOf(uid),1)
-            roominfo.answerUIDQueue.splice(roominfo.answerUIDQueue.indexOf(uid),1)
+            if(roominfo.userIdArr.indexOf(uid) > -1){
+                roominfo.userIdArr.splice(roominfo.userIdArr.indexOf(uid),1)
+            }
+            if(roominfo.answerUIDQueue.indexOf(uid) > -1){
+                roominfo.answerUIDQueue.splice(roominfo.answerUIDQueue.indexOf(uid),1)
+            }
             //向其他用户发送用户变更通知
             userStatusChangeNotify(userIDArr,[wantRemoveObj]);
         }
