@@ -90,7 +90,7 @@ roomMap[1] ={
         messageArr:[],/*文本消息记录最后10条*/
         adminCMDArr:[],/*管理员命令集合*/
         mediaMap:{},/*uid与媒体ID的映射*/
-        teachingMaterialPath:"http://39.106.135.11/juliaonline/pdfs/4b7598199953ffe850ed9d672991ccc6.pdf",
+        teachingMaterialPath:"https://www.juliaol.cn/classroom/pdfs/4b7598199953ffe850ed9d672991ccc6.pdf",
         tongyongCMDArr:[]/*通用教学命令集合*/
     }
 
@@ -106,7 +106,7 @@ roomMap[2]={
         messageArr:[],/*文本消息记录最后10条*/
         adminCMDArr:[],/*管理员命令集合*/
         mediaMap:{},/*uid与媒体ID的映射*/
-        teachingMaterialPath:"http://39.106.135.11/juliaonline/pdfs/4b7598199953ffe850ed9d672991ccc6.pdf",
+        teachingMaterialPath:"https://www.juliaol.cn/classroom/pdfs/4b7598199953ffe850ed9d672991ccc6.pdf",
         tongyongCMDArr:[]/*通用教学命令集合*/
     }
 
@@ -564,7 +564,7 @@ execFuncMap[0x00FF000C] = function(sid,dataObj){
         adminCMDArr:[],/*管理员命令集合*/
         userIdArr:[],/*用户ID数组*/
         mediaMap:{},/*uid与媒体ID的映射*/
-        teachingMaterialPath:"http://39.106.135.11/juliaonline/pdfs/4b7598199953ffe850ed9d672991ccc6.pdf",
+        teachingMaterialPath:"https://www.juliaol.cn/classroom/pdfs/4b7598199953ffe850ed9d672991ccc6.pdf",
         tongyongCMDArr:[]/*通用教学命令集合*/
     }
         
