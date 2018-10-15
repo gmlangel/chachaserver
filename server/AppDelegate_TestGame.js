@@ -347,6 +347,7 @@ execFuncMap[0x00FF0003] = function(sid,dataObj){
     var seq = dataObj["seq"] || 0;
     var resObj = {"seq":(seq + 1),"c_seq":seq};
     var uid = -1;
+
     if(loginName == ""){
         resObj["code"] = 256;//登陆名不能为空
         resObj["fe"] = "登录名不能为空"
@@ -451,8 +452,11 @@ console.log("======>"+sid+""+uid);
                         writeSock(sock,JSON.stringify(newDataObj));
                     }
                 }
-                //结束socket,并发送掉线通知
-                preSock.end(JSON.stringify({"cmd":0x00FF0007,"seq":(seq + 1),"code":259,"reason":"其它端登录,您已经被踢"}));                
+                //结束socket,并发送掉线通知  错误码必须给1000否则nodejs ws 报错
+                writeSock(preSock,JSON.stringify({"cmd":0x00FF0007,"seq":0,"code":259,"reason":"其它端登录,您已经被踢"}));
+                setTimeout(function(){
+                    preSock.close(1000,"");
+                }, 3000);//3秒后，释放                  
 }
 
 
