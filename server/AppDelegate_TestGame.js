@@ -847,7 +847,7 @@ execFuncMap[0x00FF0018] = function(sid,dataObj){
             userIDArr.splice(userIDArr.indexOf(uid),1);
         //封装通知的信息数据体
         var serverTime = new Date().valueOf();
-        var msg = {suid:uid,st:serverTime,lt:dataObj.lt,msg:dataObj.msg};
+        var msg = {suid:uid,snn:dataObj.nn,st:serverTime,lt:dataObj.lt,msg:dataObj.msg};
         //将文本消息记录在文本消息集合中
         roominfo.messageArr.push(msg);
         if(roominfo.messageArr.length > 10){
