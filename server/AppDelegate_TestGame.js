@@ -935,6 +935,9 @@ execFuncMap[0x00FF001C] = function(sid,dataObj){
         //封装通知的信息数据体
         var serverTime = new Date().valueOf();
         var data = {suid:uid,st:serverTime,lt:dataObj.lt,data:dataObj.data};
+        var funName = dataObj.data.funcName || "";
+        if(funName == "teenpage")
+            roominfo.tongyongCMDArr = [];//如果是翻页命令，则清空之前的所有通用教学命令
         //将文本消息记录在文本消息集合中
         roominfo.tongyongCMDArr.push(data);
         //发送管理员命令通知
