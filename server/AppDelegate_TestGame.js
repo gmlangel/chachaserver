@@ -59,6 +59,38 @@ var userInfoMap = {
                 "uid":102,
                 "loginName":"test2",
                 "resourcePath":""
+    },
+    "test3":{
+        "nickName":"Test3",
+                "headerImage":"",
+                "sex":0,
+                "uid":103,
+                "loginName":"test3",
+                "resourcePath":""
+    },
+    "test4":{
+        "nickName":"Test4",
+                "headerImage":"",
+                "sex":0,
+                "uid":104,
+                "loginName":"test4",
+                "resourcePath":""
+    },
+    "test5":{
+        "nickName":"Test5",
+                "headerImage":"",
+                "sex":0,
+                "uid":105,
+                "loginName":"test5",
+                "resourcePath":""
+    },
+    "test6":{
+        "nickName":"Test6",
+                "headerImage":"",
+                "sex":0,
+                "uid":106,
+                "loginName":"test6",
+                "resourcePath":""
     }
 }
 
