@@ -19,64 +19,7 @@ var packageSize = 500;
 
 
 //设置用户信息表{loginName:UserInfoObj}
-var userInfoMap = {
-    "Julia":{
-        "nickName":"Julia",
-                "headerImage":"",
-                "sex":0,
-                "uid":100,
-                "loginName":"Julia",
-                "resourcePath":""
-            },
-    "test1":{
-        "nickName":"Test1",
-                "headerImage":"",
-                "sex":1,
-                "uid":101,
-                "loginName":"test1",
-                "resourcePath":""
-    },
-    "test2":{
-        "nickName":"Test2",
-                "headerImage":"",
-                "sex":0,
-                "uid":102,
-                "loginName":"test2",
-                "resourcePath":""
-    },
-    "test3":{
-        "nickName":"Test3",
-                "headerImage":"",
-                "sex":0,
-                "uid":103,
-                "loginName":"test3",
-                "resourcePath":""
-    },
-    "test4":{
-        "nickName":"Test4",
-                "headerImage":"",
-                "sex":0,
-                "uid":104,
-                "loginName":"test4",
-                "resourcePath":""
-    },
-    "test5":{
-        "nickName":"Test5",
-                "headerImage":"",
-                "sex":0,
-                "uid":105,
-                "loginName":"test5",
-                "resourcePath":""
-    },
-    "test6":{
-        "nickName":"Test6",
-                "headerImage":"",
-                "sex":0,
-                "uid":106,
-                "loginName":"test6",
-                "resourcePath":""
-    }
-}
+var userInfoMap = {};
 
 /**
 男孩资源数组
@@ -96,33 +39,21 @@ var roomIdOffset = 0;
 var roomMap = {}
 roomMap[1] ={
         roomid:1,/*id*/
-        roomName:"班课_low",/*room名称*/
-        roomImage:"",/*room图标*/
-        createTime:0,/*创建时间*/
-        token:"testchanel_1",/*频道邀请码*/
-        ownnerUID:100,/*创建频道的人的ID*/
         userArr:[],/*当前频道中的人的信息数组*/
         userIdArr:[],/*用户ID数组*/
         messageArr:[],/*文本消息记录最后10条*/
         adminCMDArr:[],/*管理员命令集合*/
         mediaMap:{},/*uid与媒体ID的映射*/
-        teachingMaterialPath:"https://www.juliaol.cn/classroom/pdfs/4b7598199953ffe850ed9d672991ccc6.pdf",
         tongyongCMDArr:[]/*通用教学命令集合*/
     }
 
 roomMap[2]={
         roomid:2,/*id*/
-        roomName:"班课_High",/*room名称*/
-        roomImage:"",/*room图标*/
-        createTime:0,/*创建时间*/
-        token:"testchanel_2",/*频道邀请码*/
-        ownnerUID:100,/*创建频道的人的ID*/
         userArr:[],/*当前频道中的人的信息数组*/
         userIdArr:[],/*用户ID数组*/
         messageArr:[],/*文本消息记录最后10条*/
         adminCMDArr:[],/*管理员命令集合*/
         mediaMap:{},/*uid与媒体ID的映射*/
-        teachingMaterialPath:"https://www.juliaol.cn/classroom/pdfs/4b7598199953ffe850ed9d672991ccc6.pdf",
         tongyongCMDArr:[]/*通用教学命令集合*/
     }
 
@@ -547,114 +478,7 @@ execFuncMap[0x00FF000A] = function(sid,dataObj){
 
 }
 
-//创建教室服务
-execFuncMap[0x00FF000C] = function(sid,dataObj){
-    var seq = dataObj["seq"] || 0;
-    var uid = dataObj.uid || -1;
-    uid = parseInt(uid);
-    var sock = getSocketByUIDAndSID(sid,uid);
-    if(!sock){
-        return
-    }
-    if(uid < 0){
-        writeSock(sock,JSON.stringify({"cmd":0x00FF000D,"seq":seq + 1,"c_seq":seq,"code":257,"fe":"用户信息不存在,无法创建room"}));
-        return;
-    }
-    //创建频道
-    roomIdOffset ++;
-    var rid = roomIdOffset;
-    var timeIntaval = new Date().valueOf();
-    var roomInfo = {
-        roomid:rid,/*id*/
-        roomName:dataObj["rn"] || "",/*room名称*/
-        roomImage:dataObj["ri"] || "",/*room图标*/
-        createTime:timeIntaval,/*创建时间*/
-        token:createToken(uid)+rid.toString(16),/*频道邀请码*/
-        ownnerUID:uid,/*创建频道的人的ID*/
-        userArr:[],/*当前频道中的人的信息数组*/
-        messageArr:[],/*文本消息记录最后10条*/
-        adminCMDArr:[],/*管理员命令集合*/
-        userIdArr:[],/*用户ID数组*/
-        mediaMap:{},/*uid与媒体ID的映射*/
-        teachingMaterialPath:"https://www.juliaol.cn/classroom/pdfs/4b7598199953ffe850ed9d672991ccc6.pdf",
-        tongyongCMDArr:[]/*通用教学命令集合*/
-    }
-        
 
-    roomMap[rid] = roomInfo;
-    //向客户端返回结果
-    var resObj = {}
-    resObj.code = 0;
-    resObj.cmd = 0x00FF000D;
-    resObj.seq = seq + 1;
-    resObj.c_seq = seq;
-    resObj.fe = "";
-    resObj.rid = rid;
-    resObj.rc = roomInfo.token;
-    writeSock(sock,JSON.stringify(resObj));
-
-}
-
-//查询一个用户名下的所有创建的频道信息
-execFuncMap[0x00FF000E] = function(sid,dataObj){
-    var seq = dataObj["seq"] || 0;
-    var uid = dataObj.uid || -1;
-    uid = parseInt(uid);
-    var sock = getSocketByUIDAndSID(sid,uid);
-    if(!sock){
-        return
-    }
-    //遍历roomMap,封装返回数据
-    var resObj = {}
-    resObj.code = 0;
-    resObj.cmd = 0x00FF000F;
-    resObj.seq = seq + 1;
-    resObj.c_seq = seq;
-    resObj.ra = [];
-    for(var key in roomMap){
-        var rinfo = roomMap[key];
-        if(rinfo.ownnerUID == uid){
-            resObj.ra.push({rid:rinfo.roomid,rc:rinfo.token,rn:rinfo.roomName,ri:rinfo.roomImage});
-        }
-    }
-    //向客户端返回结果
-    writeSock(sock,JSON.stringify(resObj));
-}
-
-//删除room
-execFuncMap[0x00FF0011] = function(sid,dataObj){
-    var seq = dataObj["seq"] || 0;
-    var rid = dataObj.rid || -1;
-    rid = parseInt(rid);
-    var sock = getSocketByUIDAndSID(sid,-1);
-    if(!sock){
-        return
-    }
-    if(rid < 0){
-        writeSock(sock,JSON.stringify({"cmd":0x00FF0012,"seq":seq + 1,"c_seq":seq,"code":260,"fe":"删除room失败,room不存在"}));
-        return;
-    }
-    //遍历roomMap,封装返回数据
-    var resObj = {}
-    resObj.code = 260;
-    resObj.cmd = 0x00FF0012;
-    resObj.seq = seq + 1;
-    resObj.c_seq = seq;
-    for(var key in roomMap){
-        if(key == rid){
-            resObj.code = 0;
-            //删除频道
-            roomMap[key] = null;
-            delete roomMap[key];
-            break;
-        }
-    }
-    if(resObj.code == 260){
-        resObj.fe = "删除room失败,room不存在";
-    }
-    //向客户端返回结果
-    writeSock(sock,JSON.stringify(resObj));
-}
 
 /**
  * room状态通知
@@ -692,29 +516,30 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
         user.ca = dataObj.ca;//用户自定义属性 object类型
         user.rp = dataObj.rp;
         var seq = dataObj["seq"] || 0;
-        var roomCode = dataObj.rc || "";
         var resobj = {};
         resobj.cmd = 0x00FF0015;
         resobj.seq = seq + 1;
         resobj.c_seq = seq;
-        if(roomCode == "" || roomCode.length < 12){
+        var rid = dataObj["rid"] || -1;
+        if(rid == -1){
             resobj.code = 262;
-            resobj.fe = "进入room失败,邀请码无效"
+            resobj.fe = "进入room失败,cid无效"
             //向请求端发送回执消息
             writeSock(sock,JSON.stringify(resobj));
             return;
         }
-        var rid = parseInt(roomCode.substring(11,roomCode.length));
-        var roominfo = roomMap[rid];
-        if(roominfo){
-            var allowJoin = roominfo.token == dataObj.rc;//是否允许进入教室
-            if(!allowJoin){
-                resobj.code = 262;
-                resobj.fe = "进入room失败,邀请码无效"
-                //向请求端发送回执消息
-                writeSock(sock,JSON.stringify(resobj));
-                return;
+        if(!roomMap[rid]){
+            roomMap[rid] = {
+                roomid:rid,/*id*/
+                userArr:[],/*当前频道中的人的信息数组*/
+                userIdArr:[],/*用户ID数组*/
+                messageArr:[],/*文本消息记录最后10条*/
+                adminCMDArr:[],/*管理员命令集合*/
+                mediaMap:{},/*uid与媒体ID的映射*/
+                tongyongCMDArr:[]/*通用教学命令集合*/
             }
+        }
+        var roominfo = roomMap[rid];
             var j = roominfo.userArr.length;
             for(var i = 0 ;i < j;i++){
                 if(roominfo.userArr[i].uid == user.uid){
@@ -734,12 +559,8 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
                 resobj.code = 0;
                 resobj.fe = ""
                 resobj.rid = roominfo.roomid;
-                resobj.rn = roominfo.roomName;
-                resobj.ri = roominfo.roomImage;
                 resobj.ua = roominfo.userArr;
                 resobj.mediaMap = roominfo.mediaMap;
-                resobj.ownnerUID = roominfo.ownnerUID;
-                resobj.teachingMaterialPath = roominfo.teachingMaterialPath;
                 writeSock(sock,JSON.stringify(resobj));
                 //向教室内的其它用户发送 用户状态变更通知
                 var notifyUser = {};
@@ -765,12 +586,6 @@ execFuncMap[0x00FF0014] = function(sid,dataObj){
                     tongyongCMDNotify([user.uid],rid,roominfo.tongyongCMDArr);
                 }
                 roominfo.userIdArr.push(user.uid);
-        }else{
-            resobj.code = 260;
-            resobj.fe = "进入room失败,room不存在"
-            //向请求端发送回执消息
-            writeSock(sock,JSON.stringify(resobj));
-        }
 
     }
 }
