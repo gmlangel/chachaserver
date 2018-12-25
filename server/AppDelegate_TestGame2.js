@@ -7,7 +7,7 @@ var crypto = require('crypto');
 
 //对象以及属性声明----------------------------------------------------------------------------------------------------------
 var mainServer = null;//主服务器
-var mainServerPort = 31111;
+var mainServerPort = 32222;
 var connectIdOffset = 0;//客户端连接的ID ,用于生成 '客户端连接ID池';
 var connectIdPool = [];//客户端连接ID池
 var unOwnedConnect = {};//无主连接字典.用于记录未经登陆的用户的socket链接 {sid:socket}
@@ -62,7 +62,7 @@ var socketDataMap = {};//用于对客户端发来的数据进行拆包的字典
 //主函数
 function start(){
 
-    mainServer = new WebSocketServer({ port: 31111,host:"0.0.0.0"});
+    mainServer = new WebSocketServer({ port: mainServerPort,host:"0.0.0.0"});
     mainServer.on('connection', function (newConnectIns) {
         //console.log('client connected');
         newConnectIns.sid = createConnectId();//为socket链接设置ID;
